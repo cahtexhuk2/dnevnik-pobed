@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#16231e" />
+    <title>Дневник Побед</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="side-nav" aria-label="Разделы">
+        <div class="brand">
+          <div class="brand-mark">ДП</div>
+          <div>
+            <strong>Дневник Побед</strong>
+            <span>личная система роста</span>
+          </div>
+        </div>
+        <button class="nav-item active" data-tab="today" type="button">
+          <span class="icon">✓</span><span>Сегодня</span>
+        </button>
+        <button class="nav-item" data-tab="victories" type="button">
+          <span class="icon">▣</span><span>Победы</span>
+        </button>
+        <button class="nav-item add-accent" data-tab="add" type="button">
+          <span class="icon">+</span><span>Добавить</span>
+        </button>
+        <button class="nav-item" data-tab="progress" type="button">
+          <span class="icon">↗</span><span>Прогресс</span>
+        </button>
+        <button class="nav-item" data-tab="shadow" type="button">
+          <span class="icon">◐</span><span>Тень</span>
+        </button>
+      </aside>
+
+      <main class="main">
+        <section class="screen active" id="today-screen" data-screen="today">
+          <header class="screen-header">
+            <div>
+              <p class="eyebrow" id="today-weekday">Сегодня</p>
+              <h1>Ежедневный лист</h1>
+            </div>
+            <label class="date-picker">
+              <span>Дата</span>
+              <input id="active-date" type="date" />
+            </label>
+          </header>
+          <div class="summary-strip" id="today-summary"></div>
+          <div class="habit-list" id="habit-list"></div>
+        </section>
+
+        <section class="screen" id="victories-screen" data-screen="victories">
+          <header class="screen-header">
+            <div>
+              <p class="eyebrow">Стена</p>
+              <h1>Победы</h1>
+            </div>
+            <button class="primary-action" data-tab-jump="add" type="button">+ победа</button>
+          </header>
+          <div class="filters" id="victory-filters"></div>
+          <div class="victory-grid" id="victory-grid"></div>
+        </section>
+
+        <section class="screen" id="add-screen" data-screen="add">
+          <header class="screen-header">
+            <div>
+              <p class="eyebrow">Быстрая запись</p>
+              <h1>Добавить</h1>
+            </div>
+          </header>
+
+          <div class="form-tabs" role="tablist" aria-label="Что добавить">
+            <button class="form-tab active" data-form="victory" type="button">Победа</button>
+            <button class="form-tab" data-form="shadow" type="button">Тень</button>
+            <button class="form-tab" data-form="habit" type="button">Привычка</button>
+          </div>
+
+          <form class="panel form-panel active" id="victory-form" data-form-panel="victory">
+            <label class="field">
+              <span>Фото или скрин</span>
+              <input id="victory-image" type="file" accept="image/*" />
+            </label>
+            <div class="image-preview" id="image-preview">Фото появится здесь</div>
+            <label class="field">
+              <span>Текст победы</span>
+              <textarea id="victory-text" rows="4" placeholder="Например: Я сделал 103 дня подряд вокал без остановки"></textarea>
+            </label>
+            <div class="field-grid">
+              <label class="field">
+                <span>Дата</span>
+                <input id="victory-date" type="date" />
+              </label>
+              <label class="field">
+                <span>Категория</span>
+                <select id="victory-category"></select>
+              </label>
+            </div>
+            <div class="field-grid">
+              <label class="field">
+                <span>Роль</span>
+                <select id="victory-role"></select>
+              </label>
+              <label class="field">
+                <span>Теги</span>
+                <input id="victory-tags" type="text" placeholder="вокал, дисциплина" />
+              </label>
+            </div>
+            <button class="primary-action wide" type="submit">Сохранить победу</button>
+          </form>
+
+          <form class="panel form-panel" id="shadow-form" data-form-panel="shadow">
+            <label class="field">
+              <span>Ситуация</span>
+              <textarea id="shadow-situation" rows="3" placeholder="Что произошло без оправданий"></textarea>
+            </label>
+            <label class="field">
+              <span>Моя тень</span>
+              <textarea id="shadow-pattern" rows="3" placeholder="Где я сжался, обиделся, промолчал или ушел от диалога"></textarea>
+            </label>
+            <label class="field">
+              <span>Страх под этим</span>
+              <input id="shadow-fear" type="text" placeholder="Например: кто-то что-то подумает" />
+            </label>
+            <label class="field">
+              <span>Как поступил бы зрелый я</span>
+              <textarea id="shadow-mature" rows="3"></textarea>
+            </label>
+            <label class="field">
+              <span>Шаг исправления</span>
+              <input id="shadow-repair" type="text" />
+            </label>
+            <button class="primary-action wide" type="submit">Сохранить в Тень</button>
+          </form>
+
+          <form class="panel form-panel" id="habit-form" data-form-panel="habit">
+            <label class="field">
+              <span>Название привычки</span>
+              <input id="habit-name" type="text" placeholder="Например: чтение" />
+            </label>
+            <label class="field checkbox-field">
+              <input id="habit-compound" type="checkbox" />
+              <span>Составная привычка с подпунктами</span>
+            </label>
+            <div class="subtask-builder" id="subtask-builder" hidden>
+              <label class="field">
+                <span>Добавить подпункт</span>
+                <div class="inline-add">
+                  <input id="habit-child-input" type="text" placeholder="Например: пранаяма" />
+                  <button class="ghost-action square-action" id="habit-child-add" type="button">+</button>
+                </div>
+              </label>
+              <div class="subtask-list" id="habit-child-list"></div>
+            </div>
+            <button class="primary-action wide" type="submit">Добавить привычку</button>
+          </form>
+        </section>
+
+        <section class="screen" id="progress-screen" data-screen="progress">
+          <header class="screen-header">
+            <div>
+              <p class="eyebrow">Серии и челленджи</p>
+              <h1>Прогресс</h1>
+            </div>
+          </header>
+          <div class="panel calendar-panel">
+            <div class="panel-head">
+              <div>
+                <h2>Календарь пути</h2>
+                <p>Зеленый день — закрыты основные привычки.</p>
+              </div>
+              <span class="status-pill" id="calendar-total"></span>
+            </div>
+            <div class="calendar-legend">
+              <span><i class="legend-dot full"></i>полный день</span>
+              <span><i class="legend-dot partial"></i>частично</span>
+              <span><i class="legend-dot empty"></i>пусто</span>
+            </div>
+            <div class="calendar-wrap" id="progress-calendar"></div>
+          </div>
+          <div class="progress-layout">
+            <div class="panel">
+              <h2>Серии</h2>
+              <div id="streak-list" class="streak-list"></div>
+            </div>
+            <div class="panel">
+              <h2>Достижения</h2>
+              <div id="achievement-list" class="achievement-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="shadow-screen" data-screen="shadow">
+          <header class="screen-header">
+            <div>
+              <p class="eyebrow">Честный разбор</p>
+              <h1>Тень</h1>
+            </div>
+            <button class="primary-action" data-shadow-add type="button">+ запись</button>
+          </header>
+          <div class="shadow-list" id="shadow-list"></div>
+        </section>
+      </main>
+
+      <nav class="bottom-nav" aria-label="Разделы">
+        <button class="nav-item active" data-tab="today" type="button"><span class="icon">✓</span><span>Сегодня</span></button>
+        <button class="nav-item" data-tab="victories" type="button"><span class="icon">▣</span><span>Победы</span></button>
+        <button class="nav-item add-accent" data-tab="add" type="button"><span class="icon">+</span><span>Добавить</span></button>
+        <button class="nav-item" data-tab="progress" type="button"><span class="icon">↗</span><span>Прогресс</span></button>
+        <button class="nav-item" data-tab="shadow" type="button"><span class="icon">◐</span><span>Тень</span></button>
+      </nav>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
