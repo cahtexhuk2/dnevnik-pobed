@@ -245,7 +245,7 @@
                 </label>
                 <button class="primary-action wide" id="auth-submit" type="submit">Войти локально</button>
               </form>
-              <p class="profile-hint">Пока это локальный профиль. После подключения Supabase эти же поля станут настоящей регистрацией и входом между устройствами.</p>
+              <p class="profile-hint">Supabase отвечает за регистрацию и вход. Привычки, победы и фото перенесем на сервер следующим шагом.</p>
             </section>
 
             <form class="panel profile-card" id="profile-form">
@@ -281,6 +281,7 @@
               <div class="profile-actions">
                 <button class="primary-action" type="submit">Сохранить профиль</button>
                 <button class="ghost-action" id="export-data" type="button">Экспорт данных</button>
+                <button class="danger-action" id="auth-sign-out" type="button" hidden>Выйти</button>
               </div>
             </form>
           </div>
@@ -297,6 +298,7 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="app.js"></script>
   </body>

@@ -7,7 +7,7 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   display_name text,
   avatar_url text,
-  birth_year int check (birth_year between 1900 and extract(year from now())::int),
+  birth_year int check (birth_year between 1900 and 2100),
   city text,
   bio text,
   journey_start_date date default date '2026-05-26',
@@ -135,36 +135,52 @@ alter table public.victories enable row level security;
 alter table public.shadow_entries enable row level security;
 alter table public.user_settings enable row level security;
 
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on public.profiles to authenticated;
+grant select, insert, update, delete on public.habits to authenticated;
+grant select, insert, update, delete on public.habit_children to authenticated;
+grant select, insert, update, delete on public.habit_checks to authenticated;
+grant select, insert, update, delete on public.victories to authenticated;
+grant select, insert, update, delete on public.shadow_entries to authenticated;
+grant select, insert, update, delete on public.user_settings to authenticated;
+
+drop policy if exists "profiles are owned by users" on public.profiles;
 create policy "profiles are owned by users"
 on public.profiles for all
 using (auth.uid() = id)
 with check (auth.uid() = id);
 
+drop policy if exists "habits are owned by users" on public.habits;
 create policy "habits are owned by users"
 on public.habits for all
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
 
+drop policy if exists "habit children are owned by users" on public.habit_children;
 create policy "habit children are owned by users"
 on public.habit_children for all
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
 
+drop policy if exists "habit checks are owned by users" on public.habit_checks;
 create policy "habit checks are owned by users"
 on public.habit_checks for all
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
 
+drop policy if exists "victories are owned by users" on public.victories;
 create policy "victories are owned by users"
 on public.victories for all
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
 
+drop policy if exists "shadow entries are owned by users" on public.shadow_entries;
 create policy "shadow entries are owned by users"
 on public.shadow_entries for all
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
 
+drop policy if exists "settings are owned by users" on public.user_settings;
 create policy "settings are owned by users"
 on public.user_settings for all
 using (auth.uid() = user_id)
@@ -174,6 +190,7 @@ insert into storage.buckets (id, name, public)
 values ('victory-media', 'victory-media', true)
 on conflict (id) do nothing;
 
+drop policy if exists "users can upload own media" on storage.objects;
 create policy "users can upload own media"
 on storage.objects for insert
 with check (
@@ -181,6 +198,7 @@ with check (
   and auth.uid()::text = (storage.foldername(name))[1]
 );
 
+drop policy if exists "users can update own media" on storage.objects;
 create policy "users can update own media"
 on storage.objects for update
 using (
@@ -188,6 +206,7 @@ using (
   and auth.uid()::text = (storage.foldername(name))[1]
 );
 
+drop policy if exists "users can delete own media" on storage.objects;
 create policy "users can delete own media"
 on storage.objects for delete
 using (
@@ -195,6 +214,7 @@ using (
   and auth.uid()::text = (storage.foldername(name))[1]
 );
 
+drop policy if exists "public can read victory media" on storage.objects;
 create policy "public can read victory media"
 on storage.objects for select
 using (bucket_id = 'victory-media');

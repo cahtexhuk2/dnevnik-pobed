@@ -109,6 +109,8 @@ const initialState = {
 let state = loadState();
 let pendingImage = null;
 let draftHabitChildren = [];
+let supabaseClient = null;
+let supabaseUser = null;
 
 const els = {
   activeDate: document.querySelector("#active-date"),
@@ -151,6 +153,7 @@ const els = {
   profileJourneyStart: document.querySelector("#profile-journey-start"),
   profileBio: document.querySelector("#profile-bio"),
   exportData: document.querySelector("#export-data"),
+  authSignOut: document.querySelector("#auth-sign-out"),
 };
 
 boot();
@@ -203,10 +206,12 @@ function boot() {
   els.profileForm.addEventListener("submit", handleProfileSubmit);
   els.profileAvatarInput.addEventListener("change", handleAvatarUpload);
   els.exportData.addEventListener("click", exportLocalData);
+  els.authSignOut.addEventListener("click", handleSignOut);
 
   switchTab(state.activeTab || "today", false);
   switchAuthMode(state.authMode || "login", false);
   render();
+  initializeSupabaseAuth();
 }
 
 function render() {
@@ -223,9 +228,9 @@ function renderAccount() {
   const signedIn = Boolean(state.localAccount?.isSignedIn);
   const connected = isSupabaseConfigured();
 
-  els.accountName.textContent = signedIn ? name : "Локальный режим";
+  els.accountName.textContent = signedIn ? name : connected ? "Supabase подключен" : "Локальный режим";
   els.accountMode.textContent = connected
-    ? "Supabase настроен, можно подключать синхронизацию"
+    ? signedIn ? `Вход: ${state.localAccount?.email}` : "Supabase настроен, войди или зарегистрируйся"
     : "Данные хранятся в этом браузере";
   setAvatar(els.accountAvatar, state.profile?.avatar, name);
 }
@@ -490,12 +495,16 @@ function renderProfile() {
   const profile = state.profile || {};
 
   els.connectionStatus.className = `connection-status ${connected ? "connected" : "local"}`;
-  els.connectionStatus.innerHTML = connected
-    ? `<strong>Supabase настроен</strong><span>Следующий шаг — включить настоящую синхронизацию таблиц и файлов.</span>`
+  els.connectionStatus.innerHTML = connected && signedIn
+    ? `<strong>Вход выполнен</strong><span>Профиль сохраняется в Supabase. Дневник и фото подключим следующим шагом.</span>`
+    : connected
+    ? `<strong>Supabase настроен</strong><span>Можно зарегистрироваться или войти через настоящий аккаунт.</span>`
     : `<strong>Локальный режим</strong><span>Профиль и дневник пока живут только в этом браузере.</span>`;
 
   els.authNameField.hidden = state.authMode !== "register";
-  els.authSubmit.textContent = state.authMode === "register" ? "Создать локальный профиль" : "Войти локально";
+  els.authSubmit.textContent = connected
+    ? state.authMode === "register" ? "Зарегистрироваться" : "Войти"
+    : state.authMode === "register" ? "Создать локальный профиль" : "Войти локально";
   els.authEmail.value = state.localAccount?.email || "";
   els.authPassword.value = "";
   els.authName.value = profile.displayName || "";
@@ -508,8 +517,9 @@ function renderProfile() {
   setAvatar(els.profileAvatar, profile.avatar, profile.displayName || state.localAccount?.email || "ДП");
 
   if (signedIn) {
-    els.authSubmit.textContent = "Обновить вход";
+    els.authSubmit.textContent = connected ? "Войти под другим email" : "Обновить вход";
   }
+  els.authSignOut.hidden = !signedIn;
 }
 
 function handleVictorySubmit(event) {
@@ -603,7 +613,7 @@ function handleHabitSubmit(event) {
   toast("Привычка добавлена.");
 }
 
-function handleLocalAuthSubmit(event) {
+async function handleLocalAuthSubmit(event) {
   event.preventDefault();
   const email = els.authEmail.value.trim();
   const password = els.authPassword.value.trim();
@@ -615,6 +625,11 @@ function handleLocalAuthSubmit(event) {
 
   if (password.length < 6) {
     toast("Пароль должен быть минимум 6 символов.");
+    return;
+  }
+
+  if (supabaseClient) {
+    await handleSupabaseAuth(email, password);
     return;
   }
 
@@ -631,7 +646,7 @@ function handleLocalAuthSubmit(event) {
   toast(state.authMode === "register" ? "Локальный профиль создан." : "Вход выполнен локально.");
 }
 
-function handleProfileSubmit(event) {
+async function handleProfileSubmit(event) {
   event.preventDefault();
   const birthYear = els.profileBirthYear.value.trim();
   const journeyStartDate = els.profileJourneyStart.value || JOURNEY_START_DATE;
@@ -646,8 +661,13 @@ function handleProfileSubmit(event) {
   };
   state.journeyStartDate = journeyStartDate;
 
+  if (supabaseClient && supabaseUser) {
+    const saved = await saveProfileToSupabase();
+    if (!saved) return;
+  }
+
   saveAndRender();
-  toast("Профиль сохранен.");
+  toast(supabaseClient && supabaseUser ? "Профиль сохранен в Supabase." : "Профиль сохранен.");
 }
 
 function handleAvatarUpload(event) {
@@ -732,6 +752,153 @@ function handleImageUpload(event) {
   reader.readAsDataURL(file);
 }
 
+async function initializeSupabaseAuth() {
+  if (!isSupabaseConfigured()) return;
+  if (!window.supabase?.createClient) {
+    toast("Supabase SDK не загрузился. Проверь интернет и обнови страницу.");
+    return;
+  }
+
+  const config = window.DP_CONFIG;
+  supabaseClient = window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+
+  const { data, error } = await supabaseClient.auth.getSession();
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
+  await applySupabaseSession(data.session);
+
+  supabaseClient.auth.onAuthStateChange((_event, session) => {
+    applySupabaseSession(session);
+  });
+}
+
+async function handleSupabaseAuth(email, password) {
+  if (state.authMode === "register") {
+    const { data, error } = await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          display_name: els.authName.value.trim() || state.profile?.displayName || "Илья",
+        },
+      },
+    });
+
+    if (error) {
+      toast(error.message);
+      return;
+    }
+
+    if (els.authName.value.trim()) {
+      state.profile.displayName = els.authName.value.trim();
+    }
+
+    await applySupabaseSession(data.session);
+    if (data.session) {
+      await saveProfileToSupabase();
+      toast("Регистрация готова. Профиль создан.");
+    } else {
+      state.localAccount = { email, isSignedIn: false };
+      saveAndRender();
+      toast("Регистрация создана. Если Supabase попросит, подтверди email.");
+    }
+    return;
+  }
+
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) {
+    toast(error.message);
+    return;
+  }
+  await applySupabaseSession(data.session);
+  toast("Вход выполнен через Supabase.");
+}
+
+async function applySupabaseSession(session) {
+  supabaseUser = session?.user || null;
+  state.localAccount = {
+    email: supabaseUser?.email || state.localAccount?.email || "",
+    isSignedIn: Boolean(supabaseUser),
+  };
+
+  if (supabaseUser) {
+    await loadProfileFromSupabase();
+  }
+
+  saveAndRender();
+}
+
+async function loadProfileFromSupabase() {
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("display_name, avatar_url, birth_year, city, bio, journey_start_date")
+    .eq("id", supabaseUser.id)
+    .maybeSingle();
+
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
+  if (!data) {
+    await saveProfileToSupabase();
+    return;
+  }
+
+  state.profile = {
+    ...(state.profile || {}),
+    displayName: data.display_name || state.profile?.displayName || "Илья",
+    avatar: data.avatar_url || state.profile?.avatar || null,
+    birthYear: data.birth_year || "",
+    city: data.city || "",
+    bio: data.bio || "",
+    journeyStartDate: data.journey_start_date || JOURNEY_START_DATE,
+  };
+  state.journeyStartDate = state.profile.journeyStartDate;
+}
+
+async function saveProfileToSupabase() {
+  if (!supabaseClient || !supabaseUser) {
+    toast("Сначала войди или зарегистрируйся.");
+    return false;
+  }
+
+  const profile = state.profile || {};
+  const payload = {
+    id: supabaseUser.id,
+    display_name: profile.displayName || "Илья",
+    avatar_url: profile.avatar?.startsWith("http") ? profile.avatar : null,
+    birth_year: profile.birthYear ? Number(profile.birthYear) : null,
+    city: profile.city || null,
+    bio: profile.bio || null,
+    journey_start_date: profile.journeyStartDate || state.journeyStartDate || JOURNEY_START_DATE,
+  };
+
+  const { error } = await supabaseClient.from("profiles").upsert(payload);
+  if (error) {
+    toast(error.message);
+    return false;
+  }
+  return true;
+}
+
+async function handleSignOut() {
+  if (supabaseClient) {
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) {
+      toast(error.message);
+      return;
+    }
+  }
+  supabaseUser = null;
+  state.localAccount = { email: "", isSignedIn: false };
+  saveAndRender();
+  toast("Выход выполнен.");
+}
+
 function validateImageFile(file) {
   if (!file.type.startsWith("image/")) {
     toast("Можно загрузить только изображение.");
@@ -770,7 +937,9 @@ function switchAuthMode(mode, persist = true) {
     tab.classList.toggle("active", tab.dataset.authMode === mode);
   });
   els.authNameField.hidden = mode !== "register";
-  els.authSubmit.textContent = mode === "register" ? "Создать локальный профиль" : "Войти локально";
+  els.authSubmit.textContent = isSupabaseConfigured()
+    ? mode === "register" ? "Зарегистрироваться" : "Войти"
+    : mode === "register" ? "Создать локальный профиль" : "Войти локально";
   if (persist) saveAndRender();
 }
 
