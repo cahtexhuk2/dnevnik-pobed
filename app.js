@@ -1,4 +1,5 @@
 const STORAGE_KEY = "victory-diary-mvp-v1";
+const MAX_IMAGE_SIZE_BYTES = 1.8 * 1024 * 1024;
 
 const roles = [
   "Я как человек",
@@ -101,62 +102,8 @@ const initialState = {
     },
   ],
   checks: {},
-  victories: [
-    {
-      id: uid(),
-      date: "2026-07-05",
-      text: "Я сделал 103 дня подряд вокал без остановки.",
-      category: "Вокал",
-      role: "Я как творец",
-      tags: ["вокал", "дисциплина"],
-      image: null,
-      source: "seed",
-    },
-    {
-      id: uid(),
-      date: "2026-07-05",
-      text: "Я уже 40 дней вегетарианствую с 26.05.2026 и мне по кайфу.",
-      category: "Питание",
-      role: "Я как практик",
-      tags: ["вегетарианство", "тело"],
-      image: null,
-      source: "seed",
-    },
-    {
-      id: uid(),
-      date: "2026-07-05",
-      text: "Я сделал 36 дней подмасадану, асаны, медитацию и 40% плана.",
-      category: "Практики",
-      role: "Я как практик",
-      tags: ["подмасадана", "90 дней"],
-      image: null,
-      source: "seed",
-    },
-  ],
-  shadows: [
-    {
-      id: uid(),
-      date: "2026-05-23",
-      situation: "Я замерз и не встаю с кресла, потому что кто-то что-то подумает.",
-      pattern: "Страх оценки и сжатие.",
-      fear: "Кто-то увидит и подумает обо мне плохо.",
-      mature: "Встать, сделать нужное действие и выдержать чужие мысли.",
-      repair: "Отмечать такие моменты сразу.",
-      status: "открыто",
-      tags: ["страх оценки", "избегание"],
-    },
-    {
-      id: uid(),
-      date: "2026-05-24",
-      situation: "Леня сказал про деньги монтажникам, я обиделся, прервал разговор и потом прокручивал оправдания.",
-      pattern: "Обида, уход от диалога, внутреннее оправдание.",
-      fear: "Быть виноватым и выглядеть неправым.",
-      mature: "Спокойно объяснить позицию и договориться по фактам.",
-      repair: "Вернуться к разговору без защиты.",
-      status: "осознал",
-      tags: ["обида", "деньги", "диалог"],
-    },
-  ],
+  victories: [],
+  shadows: [],
 };
 
 let state = loadState();
@@ -706,6 +653,10 @@ function handleProfileSubmit(event) {
 function handleAvatarUpload(event) {
   const file = event.target.files?.[0];
   if (!file) return;
+  if (!validateImageFile(file)) {
+    event.target.value = "";
+    return;
+  }
 
   const reader = new FileReader();
   reader.onload = () => {
@@ -768,6 +719,10 @@ function renderHabitChildBuilder() {
 function handleImageUpload(event) {
   const file = event.target.files?.[0];
   if (!file) return;
+  if (!validateImageFile(file)) {
+    event.target.value = "";
+    return;
+  }
 
   const reader = new FileReader();
   reader.onload = () => {
@@ -775,6 +730,18 @@ function handleImageUpload(event) {
     els.imagePreview.innerHTML = `<img src="${pendingImage}" alt="">`;
   };
   reader.readAsDataURL(file);
+}
+
+function validateImageFile(file) {
+  if (!file.type.startsWith("image/")) {
+    toast("Можно загрузить только изображение.");
+    return false;
+  }
+  if (file.size > MAX_IMAGE_SIZE_BYTES) {
+    toast("Фото слишком большое. Пока загрузи изображение до 1.8 МБ.");
+    return false;
+  }
+  return true;
 }
 
 function switchTab(tab, persist = true) {
@@ -1033,7 +1000,7 @@ function deleteHabit(id) {
 
 function loadState() {
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return seedChecks(structuredClone(initialState));
+  if (!raw) return createInitialState();
   try {
     const parsed = JSON.parse(raw);
     return migrateState({
@@ -1046,7 +1013,7 @@ function loadState() {
       coreHabitIds: parsed.coreHabitIds || CORE_HABIT_IDS,
     });
   } catch {
-    return seedChecks(structuredClone(initialState));
+    return createInitialState();
   }
 }
 
@@ -1061,69 +1028,11 @@ function migrateState(loaded) {
     ...(loaded.profile || {}),
     journeyStartDate: loaded.profile?.journeyStartDate || loaded.journeyStartDate || JOURNEY_START_DATE,
   };
-  return seedJourneyChecks(loaded);
+  return loaded;
 }
 
-function seedChecks(base) {
-  seedJourneyChecks(base);
-  const today = base.activeDate;
-  const yesterday = shiftDate(today, -1);
-  const twoDays = shiftDate(today, -2);
-
-  [twoDays, yesterday, today].forEach((date) => {
-    base.checks[date] = {
-      "wake-up": { done: true },
-      padmasadana: {
-        children: {
-          asanas: true,
-          "pranayama-3": true,
-          bhastrika: true,
-          "kriya-small": true,
-          bogar: true,
-          sahaj: true,
-          nadi: date !== today,
-        },
-      },
-      vocal: { done: true },
-      breakfast: { done: date !== today },
-      vegetarian: { done: true },
-      gym: { done: date === yesterday },
-    };
-  });
-  return base;
-}
-
-function seedJourneyChecks(base) {
-  const endDate = shiftDate(toDateInput(new Date()), -1);
-  if (endDate < JOURNEY_START_DATE) return base;
-
-  eachDate(JOURNEY_START_DATE, endDate, (date) => {
-    base.checks[date] = mergeCoreDoneChecks(base.checks[date] || {});
-  });
-  return base;
-}
-
-function mergeCoreDoneChecks(dayChecks) {
-  return {
-    ...dayChecks,
-    "wake-up": { ...dayChecks["wake-up"], done: true },
-    padmasadana: {
-      ...dayChecks.padmasadana,
-      children: {
-        ...(dayChecks.padmasadana?.children || {}),
-        asanas: true,
-        "pranayama-3": true,
-        bhastrika: true,
-        "kriya-small": true,
-        bogar: true,
-        sahaj: true,
-        nadi: true,
-      },
-    },
-    vocal: { ...dayChecks.vocal, done: true },
-    breakfast: { ...dayChecks.breakfast, done: true },
-    vegetarian: { ...dayChecks.vegetarian, done: true },
-  };
+function createInitialState() {
+  return structuredClone(initialState);
 }
 
 function saveAndRender() {
@@ -1132,7 +1041,14 @@ function saveAndRender() {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return true;
+  } catch (error) {
+    console.error(error);
+    toast("Не получилось сохранить данные. Скорее всего, фото слишком большое.");
+    return false;
+  }
 }
 
 function setSelectOptions(selector, values) {
