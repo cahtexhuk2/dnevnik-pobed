@@ -32,9 +32,23 @@
         <button class="nav-item" data-tab="shadow" type="button">
           <span class="icon">◐</span><span>Тень</span>
         </button>
+        <button class="nav-item" data-tab="profile" type="button">
+          <span class="icon">◎</span><span>Профиль</span>
+        </button>
       </aside>
 
       <main class="main">
+        <div class="account-bar" id="account-bar">
+          <div class="account-identity">
+            <div class="avatar-preview small" id="account-avatar">ДП</div>
+            <div>
+              <strong id="account-name">Локальный режим</strong>
+              <span id="account-mode">Данные хранятся в этом браузере</span>
+            </div>
+          </div>
+          <button class="ghost-action" data-tab-jump="profile" type="button">Профиль</button>
+        </div>
+
         <section class="screen active" id="today-screen" data-screen="today">
           <header class="screen-header">
             <div>
@@ -200,6 +214,77 @@
           </header>
           <div class="shadow-list" id="shadow-list"></div>
         </section>
+
+        <section class="screen" id="profile-screen" data-screen="profile">
+          <header class="screen-header">
+            <div>
+              <p class="eyebrow">Аккаунт</p>
+              <h1>Профиль</h1>
+            </div>
+          </header>
+
+          <div class="profile-layout">
+            <section class="panel profile-card">
+              <div class="connection-status" id="connection-status"></div>
+              <div class="auth-tabs" role="tablist" aria-label="Вход или регистрация">
+                <button class="form-tab active" data-auth-mode="login" type="button">Вход</button>
+                <button class="form-tab" data-auth-mode="register" type="button">Регистрация</button>
+              </div>
+              <form class="auth-form" id="auth-form">
+                <label class="field auth-name-field" hidden>
+                  <span>Имя</span>
+                  <input id="auth-name" type="text" placeholder="Илья" />
+                </label>
+                <label class="field">
+                  <span>Email</span>
+                  <input id="auth-email" type="email" placeholder="name@example.com" autocomplete="email" />
+                </label>
+                <label class="field">
+                  <span>Пароль</span>
+                  <input id="auth-password" type="password" placeholder="Минимум 6 символов" autocomplete="current-password" />
+                </label>
+                <button class="primary-action wide" id="auth-submit" type="submit">Войти локально</button>
+              </form>
+              <p class="profile-hint">Пока это локальный профиль. После подключения Supabase эти же поля станут настоящей регистрацией и входом между устройствами.</p>
+            </section>
+
+            <form class="panel profile-card" id="profile-form">
+              <div class="profile-top">
+                <div class="avatar-preview" id="profile-avatar">ДП</div>
+                <label class="field">
+                  <span>Аватарка</span>
+                  <input id="profile-avatar-input" type="file" accept="image/*" />
+                </label>
+              </div>
+              <label class="field">
+                <span>Имя на платформе</span>
+                <input id="profile-display-name" type="text" placeholder="Илья" />
+              </label>
+              <div class="field-grid">
+                <label class="field">
+                  <span>Год рождения</span>
+                  <input id="profile-birth-year" type="number" min="1900" max="2026" placeholder="1990" />
+                </label>
+                <label class="field">
+                  <span>Город</span>
+                  <input id="profile-city" type="text" placeholder="Например: Иркутск" />
+                </label>
+              </div>
+              <label class="field">
+                <span>Старт пути</span>
+                <input id="profile-journey-start" type="date" />
+              </label>
+              <label class="field">
+                <span>О себе</span>
+                <textarea id="profile-bio" rows="4" placeholder="Кто я, какие у меня цели, зачем веду дневник побед"></textarea>
+              </label>
+              <div class="profile-actions">
+                <button class="primary-action" type="submit">Сохранить профиль</button>
+                <button class="ghost-action" id="export-data" type="button">Экспорт данных</button>
+              </div>
+            </form>
+          </div>
+        </section>
       </main>
 
       <nav class="bottom-nav" aria-label="Разделы">
@@ -212,6 +297,7 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="config.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

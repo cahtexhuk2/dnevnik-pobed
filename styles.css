@@ -132,6 +132,71 @@ button {
   margin: 0 auto;
 }
 
+.account-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 22px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 12px 30px rgba(23, 35, 30, 0.06);
+}
+
+.account-identity {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 10px;
+}
+
+.account-identity strong,
+.account-identity span {
+  display: block;
+}
+
+.account-identity strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-identity span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.avatar-preview {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  overflow: hidden;
+  border: 2px solid #c7d7ce;
+  border-radius: 50%;
+  background: #16231e;
+  color: #f5f3ee;
+  font-size: 24px;
+  font-weight: 900;
+  flex: 0 0 auto;
+}
+
+.avatar-preview.small {
+  width: 42px;
+  height: 42px;
+  font-size: 14px;
+}
+
+.avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .screen {
   display: none;
 }
@@ -862,6 +927,74 @@ button.day-cell {
   font-size: 13px;
 }
 
+.profile-layout {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.profile-card {
+  display: grid;
+  gap: 14px;
+}
+
+.profile-top {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.connection-status {
+  display: grid;
+  gap: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: #f8f6f1;
+}
+
+.connection-status strong,
+.connection-status span {
+  display: block;
+}
+
+.connection-status span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.connection-status.connected {
+  border-color: #9fc9ad;
+  background: var(--green-soft);
+}
+
+.auth-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.auth-form {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-hint {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .card-actions {
   display: flex;
   flex-wrap: wrap;
@@ -991,6 +1124,7 @@ button.day-cell {
   .progress-layout,
   .calendar-wrap,
   .shadow-grid,
+  .profile-layout,
   .field-grid {
     grid-template-columns: 1fr;
   }
@@ -1043,5 +1177,17 @@ button.day-cell {
   .habit-delete {
     width: 32px;
     height: 32px;
+  }
+
+  .account-bar {
+    align-items: stretch;
+  }
+
+  .account-bar .ghost-action {
+    width: auto;
+  }
+
+  .profile-top {
+    grid-template-columns: 1fr;
   }
 }

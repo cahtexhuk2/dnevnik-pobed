@@ -32,6 +32,19 @@ const initialState = {
   collapsedHabits: {},
   journeyStartDate: JOURNEY_START_DATE,
   coreHabitIds: CORE_HABIT_IDS,
+  authMode: "login",
+  localAccount: {
+    email: "",
+    isSignedIn: false,
+  },
+  profile: {
+    displayName: "Илья",
+    avatar: null,
+    birthYear: "",
+    city: "",
+    bio: "",
+    journeyStartDate: JOURNEY_START_DATE,
+  },
   roles,
   categories,
   habits: [
@@ -172,6 +185,25 @@ const els = {
   habitChildInput: document.querySelector("#habit-child-input"),
   habitChildAdd: document.querySelector("#habit-child-add"),
   habitChildList: document.querySelector("#habit-child-list"),
+  accountName: document.querySelector("#account-name"),
+  accountMode: document.querySelector("#account-mode"),
+  accountAvatar: document.querySelector("#account-avatar"),
+  connectionStatus: document.querySelector("#connection-status"),
+  authForm: document.querySelector("#auth-form"),
+  authNameField: document.querySelector(".auth-name-field"),
+  authName: document.querySelector("#auth-name"),
+  authEmail: document.querySelector("#auth-email"),
+  authPassword: document.querySelector("#auth-password"),
+  authSubmit: document.querySelector("#auth-submit"),
+  profileForm: document.querySelector("#profile-form"),
+  profileAvatar: document.querySelector("#profile-avatar"),
+  profileAvatarInput: document.querySelector("#profile-avatar-input"),
+  profileDisplayName: document.querySelector("#profile-display-name"),
+  profileBirthYear: document.querySelector("#profile-birth-year"),
+  profileCity: document.querySelector("#profile-city"),
+  profileJourneyStart: document.querySelector("#profile-journey-start"),
+  profileBio: document.querySelector("#profile-bio"),
+  exportData: document.querySelector("#export-data"),
 };
 
 boot();
@@ -190,8 +222,12 @@ function boot() {
     switchForm("shadow");
   });
 
-  document.querySelectorAll(".form-tab").forEach((button) => {
+  document.querySelectorAll("[data-form]").forEach((button) => {
     button.addEventListener("click", () => switchForm(button.dataset.form));
+  });
+
+  document.querySelectorAll("[data-auth-mode]").forEach((button) => {
+    button.addEventListener("click", () => switchAuthMode(button.dataset.authMode));
   });
 
   els.activeDate.value = state.activeDate;
@@ -216,16 +252,35 @@ function boot() {
   els.victoryForm.addEventListener("submit", handleVictorySubmit);
   els.shadowForm.addEventListener("submit", handleShadowSubmit);
   els.habitForm.addEventListener("submit", handleHabitSubmit);
+  els.authForm.addEventListener("submit", handleLocalAuthSubmit);
+  els.profileForm.addEventListener("submit", handleProfileSubmit);
+  els.profileAvatarInput.addEventListener("change", handleAvatarUpload);
+  els.exportData.addEventListener("click", exportLocalData);
 
   switchTab(state.activeTab || "today", false);
+  switchAuthMode(state.authMode || "login", false);
   render();
 }
 
 function render() {
+  renderAccount();
   renderToday();
   renderVictories();
   renderProgress();
   renderShadow();
+  renderProfile();
+}
+
+function renderAccount() {
+  const name = state.profile?.displayName || state.localAccount?.email || "Локальный режим";
+  const signedIn = Boolean(state.localAccount?.isSignedIn);
+  const connected = isSupabaseConfigured();
+
+  els.accountName.textContent = signedIn ? name : "Локальный режим";
+  els.accountMode.textContent = connected
+    ? "Supabase настроен, можно подключать синхронизацию"
+    : "Данные хранятся в этом браузере";
+  setAvatar(els.accountAvatar, state.profile?.avatar, name);
 }
 
 function renderToday() {
@@ -482,6 +537,34 @@ function renderShadow() {
   });
 }
 
+function renderProfile() {
+  const connected = isSupabaseConfigured();
+  const signedIn = Boolean(state.localAccount?.isSignedIn);
+  const profile = state.profile || {};
+
+  els.connectionStatus.className = `connection-status ${connected ? "connected" : "local"}`;
+  els.connectionStatus.innerHTML = connected
+    ? `<strong>Supabase настроен</strong><span>Следующий шаг — включить настоящую синхронизацию таблиц и файлов.</span>`
+    : `<strong>Локальный режим</strong><span>Профиль и дневник пока живут только в этом браузере.</span>`;
+
+  els.authNameField.hidden = state.authMode !== "register";
+  els.authSubmit.textContent = state.authMode === "register" ? "Создать локальный профиль" : "Войти локально";
+  els.authEmail.value = state.localAccount?.email || "";
+  els.authPassword.value = "";
+  els.authName.value = profile.displayName || "";
+
+  els.profileDisplayName.value = profile.displayName || "";
+  els.profileBirthYear.value = profile.birthYear || "";
+  els.profileCity.value = profile.city || "";
+  els.profileJourneyStart.value = profile.journeyStartDate || state.journeyStartDate || JOURNEY_START_DATE;
+  els.profileBio.value = profile.bio || "";
+  setAvatar(els.profileAvatar, profile.avatar, profile.displayName || state.localAccount?.email || "ДП");
+
+  if (signedIn) {
+    els.authSubmit.textContent = "Обновить вход";
+  }
+}
+
 function handleVictorySubmit(event) {
   event.preventDefault();
   const text = document.querySelector("#victory-text").value.trim();
@@ -573,6 +656,85 @@ function handleHabitSubmit(event) {
   toast("Привычка добавлена.");
 }
 
+function handleLocalAuthSubmit(event) {
+  event.preventDefault();
+  const email = els.authEmail.value.trim();
+  const password = els.authPassword.value.trim();
+
+  if (!email || !password) {
+    toast("Укажи email и пароль.");
+    return;
+  }
+
+  if (password.length < 6) {
+    toast("Пароль должен быть минимум 6 символов.");
+    return;
+  }
+
+  state.localAccount = {
+    email,
+    isSignedIn: true,
+  };
+
+  if (state.authMode === "register" && els.authName.value.trim()) {
+    state.profile.displayName = els.authName.value.trim();
+  }
+
+  saveAndRender();
+  toast(state.authMode === "register" ? "Локальный профиль создан." : "Вход выполнен локально.");
+}
+
+function handleProfileSubmit(event) {
+  event.preventDefault();
+  const birthYear = els.profileBirthYear.value.trim();
+  const journeyStartDate = els.profileJourneyStart.value || JOURNEY_START_DATE;
+
+  state.profile = {
+    ...(state.profile || {}),
+    displayName: els.profileDisplayName.value.trim() || "Илья",
+    birthYear,
+    city: els.profileCity.value.trim(),
+    bio: els.profileBio.value.trim(),
+    journeyStartDate,
+  };
+  state.journeyStartDate = journeyStartDate;
+
+  saveAndRender();
+  toast("Профиль сохранен.");
+}
+
+function handleAvatarUpload(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    state.profile = {
+      ...(state.profile || {}),
+      avatar: reader.result,
+    };
+    saveAndRender();
+    toast("Аватарка обновлена.");
+  };
+  reader.readAsDataURL(file);
+}
+
+function exportLocalData() {
+  const data = {
+    exportedAt: new Date().toISOString(),
+    app: "Дневник Побед",
+    state,
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `dnevnik-pobed-${toDateInput(new Date())}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+  toast("Экспорт подготовлен.");
+}
+
 function addDraftHabitChild() {
   const value = els.habitChildInput.value.trim();
   if (!value) return;
@@ -628,11 +790,21 @@ function switchTab(tab, persist = true) {
 
 function switchForm(form) {
   document.querySelectorAll(".form-tab").forEach((tab) => {
-    tab.classList.toggle("active", tab.dataset.form === form);
+    if (tab.dataset.form) tab.classList.toggle("active", tab.dataset.form === form);
   });
   document.querySelectorAll("[data-form-panel]").forEach((panel) => {
     panel.classList.toggle("active", panel.dataset.formPanel === form);
   });
+}
+
+function switchAuthMode(mode, persist = true) {
+  state.authMode = mode;
+  document.querySelectorAll("[data-auth-mode]").forEach((tab) => {
+    tab.classList.toggle("active", tab.dataset.authMode === mode);
+  });
+  els.authNameField.hidden = mode !== "register";
+  els.authSubmit.textContent = mode === "register" ? "Создать локальный профиль" : "Войти локально";
+  if (persist) saveAndRender();
 }
 
 function toggleHabit(habitId) {
@@ -882,6 +1054,13 @@ function migrateState(loaded) {
   loaded.journeyStartDate = loaded.journeyStartDate || JOURNEY_START_DATE;
   loaded.coreHabitIds = loaded.coreHabitIds || CORE_HABIT_IDS;
   loaded.checks = loaded.checks || {};
+  loaded.authMode = loaded.authMode || "login";
+  loaded.localAccount = loaded.localAccount || { email: "", isSignedIn: false };
+  loaded.profile = {
+    ...structuredClone(initialState.profile),
+    ...(loaded.profile || {}),
+    journeyStartDate: loaded.profile?.journeyStartDate || loaded.journeyStartDate || JOURNEY_START_DATE,
+  };
   return seedJourneyChecks(loaded);
 }
 
@@ -1081,6 +1260,32 @@ function uniqueHabitId(name) {
 function uniqueChildId(name, index) {
   const base = slugify(name);
   return `${base}-${index + 1}`;
+}
+
+function isSupabaseConfigured() {
+  const config = window.DP_CONFIG || {};
+  return Boolean(config.SUPABASE_URL && config.SUPABASE_ANON_KEY);
+}
+
+function setAvatar(element, image, name) {
+  if (image) {
+    element.innerHTML = `<img src="${image}" alt="">`;
+    return;
+  }
+  element.textContent = getInitials(name);
+}
+
+function getInitials(name) {
+  const words = String(name || "ДП")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!words.length) return "ДП";
+  return words
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
 }
 
 function uid() {
