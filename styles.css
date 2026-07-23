@@ -145,56 +145,6 @@ button {
   box-shadow: 0 12px 30px rgba(23, 35, 30, 0.06);
 }
 
-.onboarding-panel {
-  display: grid;
-  grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.4fr);
-  gap: 14px;
-  margin-bottom: 22px;
-  padding: 16px;
-  border: 1px solid #c7d7ce;
-  border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: var(--shadow);
-}
-
-.onboarding-panel[hidden] {
-  display: none;
-}
-
-.onboarding-copy h2 {
-  margin-bottom: 8px;
-}
-
-.onboarding-copy p:last-child {
-  margin-bottom: 0;
-  color: var(--muted);
-  line-height: 1.45;
-}
-
-.onboarding-steps {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.onboarding-step {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: #fbfcfb;
-  color: var(--ink);
-  padding: 10px;
-  text-align: left;
-}
-
-.onboarding-step.done {
-  border-color: #9fc9ad;
-  background: var(--green-soft);
-}
-
 .step-number {
   display: grid;
   place-items: center;
@@ -207,28 +157,8 @@ button {
   flex: 0 0 auto;
 }
 
-.onboarding-step.done .step-number {
+.guide-card.done .step-number {
   background: var(--green);
-}
-
-.onboarding-step strong,
-.onboarding-step small {
-  display: block;
-}
-
-.onboarding-step small {
-  margin-top: 2px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.25;
-}
-
-.onboarding-actions {
-  grid-column: 2;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
 }
 
 .onboarding-modal {
@@ -246,21 +176,100 @@ button {
 }
 
 .onboarding-dialog {
-  width: min(460px, 100%);
+  width: min(680px, 100%);
+  max-height: min(760px, calc(100vh - 36px));
+  overflow: auto;
   border: 1px solid #c7d7ce;
   border-radius: var(--radius);
   background: #fff;
-  padding: 20px;
+  padding: 22px;
   box-shadow: 0 24px 70px rgba(23, 35, 30, 0.22);
 }
 
 .onboarding-dialog h2 {
   margin-bottom: 8px;
+  font-size: 30px;
 }
 
 .onboarding-dialog p:not(.eyebrow) {
   color: var(--muted);
   line-height: 1.45;
+}
+
+.onboarding-guide {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.onboarding-guide[hidden] {
+  display: none;
+}
+
+.guide-card-list {
+  display: grid;
+  gap: 10px;
+}
+
+.guide-card {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fbfcfb;
+  padding: 13px;
+}
+
+.guide-card.done {
+  border-color: #9fc9ad;
+  background: var(--green-soft);
+}
+
+.guide-card strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.guide-card p {
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.template-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  width: 100%;
+  border: 1px solid #c7d7ce;
+  border-radius: var(--radius);
+  background: #eef8f2;
+  color: var(--ink);
+  padding: 13px;
+  text-align: left;
+}
+
+.template-card strong {
+  display: block;
+  font-size: 16px;
+}
+
+.template-card small {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.template-card b {
+  border-radius: 999px;
+  background: #fff;
+  color: var(--green);
+  padding: 8px 10px;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .onboarding-dialog-actions {
@@ -1248,19 +1257,10 @@ button.day-cell {
   .victory-grid,
   .progress-layout,
   .calendar-wrap,
-  .onboarding-panel,
   .shadow-grid,
   .profile-layout,
   .field-grid {
     grid-template-columns: 1fr;
-  }
-
-  .onboarding-steps {
-    grid-template-columns: 1fr;
-  }
-
-  .onboarding-actions {
-    grid-column: auto;
   }
 
   .summary-strip {
@@ -1323,5 +1323,14 @@ button.day-cell {
 
   .profile-top {
     grid-template-columns: 1fr;
+  }
+
+  .onboarding-dialog {
+    padding: 18px;
+  }
+
+  .onboarding-dialog-actions .primary-action,
+  .onboarding-dialog-actions .ghost-action {
+    width: 100%;
   }
 }

@@ -110,6 +110,7 @@ let supabaseClient = null;
 let supabaseUser = null;
 let hasSyncedHabits = false;
 let hasSyncedJournal = false;
+let onboardingMode = null;
 
 const els = {
   activeDate: document.querySelector("#active-date"),
@@ -136,9 +137,11 @@ const els = {
   accountName: document.querySelector("#account-name"),
   accountMode: document.querySelector("#account-mode"),
   accountAvatar: document.querySelector("#account-avatar"),
-  onboardingPanel: document.querySelector("#onboarding-panel"),
-  onboardingSteps: document.querySelector("#onboarding-steps"),
   onboardingModal: document.querySelector("#onboarding-modal"),
+  onboardingKicker: document.querySelector("#onboarding-kicker"),
+  onboardingTitle: document.querySelector("#onboarding-modal-title"),
+  onboardingText: document.querySelector("#onboarding-modal-text"),
+  onboardingGuide: document.querySelector("#onboarding-guide"),
   onboardingLearn: document.querySelector("#onboarding-learn"),
   onboardingSkip: document.querySelector("#onboarding-skip"),
   connectionStatus: document.querySelector("#connection-status"),
@@ -224,8 +227,7 @@ function boot() {
 
 function render() {
   renderAccount();
-  renderOnboarding();
-  renderOnboardingPrompt();
+  renderOnboardingModal();
   renderToday();
   renderVictories();
   renderProgress();
@@ -233,85 +235,123 @@ function render() {
   renderProfile();
 }
 
-function renderOnboarding() {
-  if (!els.onboardingPanel) return;
-
+function shouldPromptOnboarding() {
   const hasProfile = Boolean(state.profile?.displayName || state.profile?.city || state.profile?.bio);
   const hasHabit = state.habits.length > 0;
   const hasVictory = state.victories.length > 0;
-  const hasStarted = hasProfile && hasHabit && hasVictory;
-  const shouldShow = !state.onboardingDismissed && !hasStarted;
+  return Boolean(state.localAccount?.isSignedIn)
+    && !hasHabit
+    && !hasVictory
+    && !state.onboardingPromptSeen
+    && !state.onboardingDismissed
+    && !hasProfile;
+}
 
-  els.onboardingPanel.hidden = !shouldShow;
-  if (!shouldShow) return;
+function renderOnboardingModal() {
+  if (!els.onboardingModal) return;
+  if (!onboardingMode && shouldPromptOnboarding()) {
+    onboardingMode = "prompt";
+  }
 
-  const steps = [
-    { done: hasProfile, title: "Профиль", text: "Имя, город, цель и старт пути", action: "profile" },
-    { done: hasHabit, title: "Привычки", text: "Одна простая или составная привычка", action: "habit" },
-    { done: hasVictory, title: "Победа", text: "Первая запись на стене побед", action: "victory" },
-  ];
+  els.onboardingModal.hidden = !onboardingMode;
+  if (!onboardingMode) return;
 
-  els.onboardingSteps.innerHTML = steps.map((step, index) => `
-    <button class="onboarding-step ${step.done ? "done" : ""}" data-onboarding-action="${step.action}" type="button">
-      <span class="step-number">${step.done ? "✓" : index + 1}</span>
-      <span>
-        <strong>${escapeHtml(step.title)}</strong>
-        <small>${escapeHtml(step.text)}</small>
-      </span>
-    </button>
-  `).join("");
+  const isGuide = onboardingMode === "guide";
+  els.onboardingKicker.textContent = isGuide ? "Обучение" : "Первый вход";
+  els.onboardingTitle.textContent = isGuide ? "С чего начать" : "Показать короткое обучение?";
+  els.onboardingText.textContent = isGuide
+    ? "Три спокойных шага, чтобы дневник стал твоим, а не пустой страницей."
+    : "Я проведу тебя по первым шагам: профиль, первая привычка, первая победа и шаблон привычек, если он нужен.";
+  els.onboardingGuide.hidden = !isGuide;
+  els.onboardingGuide.innerHTML = isGuide ? renderOnboardingGuide() : "";
+  els.onboardingLearn.textContent = isGuide ? "Закончить" : "Пройти обучение";
+  els.onboardingSkip.textContent = isGuide ? "Закрыть" : "Пропустить";
 
-  els.onboardingPanel.querySelectorAll("[data-onboarding-action]").forEach((button) => {
+  els.onboardingGuide.querySelectorAll("[data-onboarding-action]").forEach((button) => {
     button.onclick = () => handleOnboardingAction(button.dataset.onboardingAction);
   });
 }
 
-function renderOnboardingPrompt() {
-  if (!els.onboardingModal) return;
-  const signedIn = Boolean(state.localAccount?.isSignedIn);
-  const isEmptyAccount = !state.habits.length && !state.victories.length;
-  const shouldAsk = signedIn && isEmptyAccount && !state.onboardingPromptSeen && !state.onboardingDismissed;
-  els.onboardingModal.hidden = !shouldAsk;
+function renderOnboardingGuide() {
+  const hasProfile = Boolean(state.profile?.displayName || state.profile?.city || state.profile?.bio);
+  const hasHabit = state.habits.length > 0;
+  const hasVictory = state.victories.length > 0;
+  const steps = [
+    { done: hasProfile, number: "1", title: "Заполни профиль", text: "Имя, город, цель и дата старта пути.", action: "profile", button: "Открыть профиль" },
+    { done: hasHabit, number: "2", title: "Добавь привычку", text: "Простую галочку или составную практику с подпунктами.", action: "habit", button: "Добавить привычку" },
+    { done: hasVictory, number: "3", title: "Сохрани победу", text: "Фото, скрин или короткий текст на стену побед.", action: "victory", button: "Добавить победу" },
+  ];
+
+  return `
+    <div class="guide-card-list">
+      ${steps.map((step) => `
+        <article class="guide-card ${step.done ? "done" : ""}">
+          <span class="step-number">${step.done ? "✓" : step.number}</span>
+          <div>
+            <strong>${escapeHtml(step.title)}</strong>
+            <p>${escapeHtml(step.text)}</p>
+            <button class="ghost-action" data-onboarding-action="${step.action}" type="button">${escapeHtml(step.button)}</button>
+          </div>
+        </article>
+      `).join("")}
+    </div>
+    <button class="template-card" data-onboarding-action="template" type="button">
+      <span>
+        <strong>Шаблон Ильи</strong>
+        <small>Подъем, подмасадана, вокал, завтрак и вегетарианство. Добавляется только если сам нажмешь.</small>
+      </span>
+      <b>Добавить шаблон</b>
+    </button>
+  `;
 }
 
 function acceptOnboardingPrompt() {
   state.onboardingPromptSeen = true;
   state.onboardingDismissed = false;
+  onboardingMode = onboardingMode === "guide" ? null : "guide";
   saveAndRender();
-  switchTab("today");
 }
 
 function skipOnboardingPrompt() {
   state.onboardingPromptSeen = true;
   state.onboardingDismissed = true;
+  onboardingMode = null;
   saveAndRender();
 }
 
 function startOnboarding() {
   state.onboardingPromptSeen = true;
   state.onboardingDismissed = false;
+  onboardingMode = "guide";
   saveAndRender();
-  switchTab("today");
 }
 
 async function handleOnboardingAction(action) {
+  onboardingMode = null;
   if (action === "profile") {
+    state.onboardingPromptSeen = true;
+    saveState();
     switchTab("profile");
     return;
   }
   if (action === "habit") {
+    state.onboardingPromptSeen = true;
+    saveState();
     switchTab("add");
     switchForm("habit");
     document.querySelector("#habit-name").focus();
     return;
   }
   if (action === "victory") {
+    state.onboardingPromptSeen = true;
+    saveState();
     switchTab("add");
     switchForm("victory");
     document.querySelector("#victory-text").focus();
     return;
   }
   if (action === "template") {
+    state.onboardingPromptSeen = true;
     await installStarterTemplate();
     return;
   }

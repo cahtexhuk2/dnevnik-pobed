@@ -49,21 +49,6 @@
           <button class="ghost-action" data-tab-jump="profile" type="button">Профиль</button>
         </div>
 
-        <section class="onboarding-panel" id="onboarding-panel" hidden aria-label="Первый запуск">
-          <div class="onboarding-copy">
-            <p class="eyebrow">Первый запуск</p>
-            <h2>Собери свой дневник побед</h2>
-            <p>Заполни профиль, добавь привычки и сохрани первую победу. Можно начать с пустого листа или взять готовый шаблон.</p>
-          </div>
-          <div class="onboarding-steps" id="onboarding-steps"></div>
-          <div class="onboarding-actions">
-            <button class="primary-action" data-onboarding-action="habit" type="button">+ привычка</button>
-            <button class="ghost-action" data-onboarding-action="victory" type="button">+ победа</button>
-            <button class="ghost-action" data-onboarding-action="template" type="button">Шаблон Ильи</button>
-            <button class="ghost-action" data-onboarding-action="dismiss" type="button">Скрыть</button>
-          </div>
-        </section>
-
         <section class="screen active" id="today-screen" data-screen="today">
           <header class="screen-header">
             <div>
@@ -315,9 +300,10 @@
 
     <div class="onboarding-modal" id="onboarding-modal" hidden role="dialog" aria-modal="true" aria-labelledby="onboarding-modal-title">
       <div class="onboarding-dialog">
-        <p class="eyebrow">Первый вход</p>
+        <p class="eyebrow" id="onboarding-kicker">Первый вход</p>
         <h2 id="onboarding-modal-title">Показать короткое обучение?</h2>
-        <p>Я проведу тебя по первым шагам: профиль, первая привычка, первая победа и шаблон привычек, если он нужен.</p>
+        <p id="onboarding-modal-text">Я проведу тебя по первым шагам: профиль, первая привычка, первая победа и шаблон привычек, если он нужен.</p>
+        <div class="onboarding-guide" id="onboarding-guide"></div>
         <div class="onboarding-dialog-actions">
           <button class="primary-action" id="onboarding-learn" type="button">Пройти обучение</button>
           <button class="ghost-action" id="onboarding-skip" type="button">Пропустить</button>
