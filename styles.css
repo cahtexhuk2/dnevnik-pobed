@@ -231,6 +231,45 @@ button {
   gap: 8px;
 }
 
+.onboarding-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(24, 33, 29, 0.42);
+}
+
+.onboarding-modal[hidden] {
+  display: none;
+}
+
+.onboarding-dialog {
+  width: min(460px, 100%);
+  border: 1px solid #c7d7ce;
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 20px;
+  box-shadow: 0 24px 70px rgba(23, 35, 30, 0.22);
+}
+
+.onboarding-dialog h2 {
+  margin-bottom: 8px;
+}
+
+.onboarding-dialog p:not(.eyebrow) {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.onboarding-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
 .account-identity {
   display: flex;
   align-items: center;

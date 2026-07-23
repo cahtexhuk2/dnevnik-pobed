@@ -295,6 +295,7 @@
               </label>
               <div class="profile-actions">
                 <button class="primary-action" type="submit">Сохранить профиль</button>
+                <button class="ghost-action" id="start-onboarding" type="button">Пройти обучение</button>
                 <button class="ghost-action" id="export-data" type="button">Экспорт данных</button>
                 <button class="danger-action" id="auth-sign-out" type="button" hidden>Выйти</button>
               </div>
@@ -310,6 +311,18 @@
         <button class="nav-item" data-tab="progress" type="button"><span class="icon">↗</span><span>Прогресс</span></button>
         <button class="nav-item" data-tab="shadow" type="button"><span class="icon">◐</span><span>Тень</span></button>
       </nav>
+    </div>
+
+    <div class="onboarding-modal" id="onboarding-modal" hidden role="dialog" aria-modal="true" aria-labelledby="onboarding-modal-title">
+      <div class="onboarding-dialog">
+        <p class="eyebrow">Первый вход</p>
+        <h2 id="onboarding-modal-title">Показать короткое обучение?</h2>
+        <p>Я проведу тебя по первым шагам: профиль, первая привычка, первая победа и шаблон привычек, если он нужен.</p>
+        <div class="onboarding-dialog-actions">
+          <button class="primary-action" id="onboarding-learn" type="button">Пройти обучение</button>
+          <button class="ghost-action" id="onboarding-skip" type="button">Пропустить</button>
+        </div>
+      </div>
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>

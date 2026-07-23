@@ -78,6 +78,7 @@ const initialState = {
   victoryFilter: "Все",
   collapsedHabits: {},
   onboardingDismissed: false,
+  onboardingPromptSeen: false,
   journeyStartDate: JOURNEY_START_DATE,
   coreHabitIds: CORE_HABIT_IDS,
   authMode: "login",
@@ -137,6 +138,9 @@ const els = {
   accountAvatar: document.querySelector("#account-avatar"),
   onboardingPanel: document.querySelector("#onboarding-panel"),
   onboardingSteps: document.querySelector("#onboarding-steps"),
+  onboardingModal: document.querySelector("#onboarding-modal"),
+  onboardingLearn: document.querySelector("#onboarding-learn"),
+  onboardingSkip: document.querySelector("#onboarding-skip"),
   connectionStatus: document.querySelector("#connection-status"),
   authForm: document.querySelector("#auth-form"),
   authNameField: document.querySelector(".auth-name-field"),
@@ -152,6 +156,7 @@ const els = {
   profileCity: document.querySelector("#profile-city"),
   profileJourneyStart: document.querySelector("#profile-journey-start"),
   profileBio: document.querySelector("#profile-bio"),
+  startOnboarding: document.querySelector("#start-onboarding"),
   exportData: document.querySelector("#export-data"),
   authSignOut: document.querySelector("#auth-sign-out"),
 };
@@ -205,6 +210,9 @@ function boot() {
   els.authForm.addEventListener("submit", handleLocalAuthSubmit);
   els.profileForm.addEventListener("submit", handleProfileSubmit);
   els.profileAvatarInput.addEventListener("change", handleAvatarUpload);
+  els.startOnboarding.addEventListener("click", startOnboarding);
+  els.onboardingLearn.addEventListener("click", acceptOnboardingPrompt);
+  els.onboardingSkip.addEventListener("click", skipOnboardingPrompt);
   els.exportData.addEventListener("click", exportLocalData);
   els.authSignOut.addEventListener("click", handleSignOut);
 
@@ -217,6 +225,7 @@ function boot() {
 function render() {
   renderAccount();
   renderOnboarding();
+  renderOnboardingPrompt();
   renderToday();
   renderVictories();
   renderProgress();
@@ -231,8 +240,7 @@ function renderOnboarding() {
   const hasHabit = state.habits.length > 0;
   const hasVictory = state.victories.length > 0;
   const hasStarted = hasProfile && hasHabit && hasVictory;
-  const isEmptyAccount = !hasHabit && !hasVictory;
-  const shouldShow = (!state.onboardingDismissed || isEmptyAccount) && !hasStarted;
+  const shouldShow = !state.onboardingDismissed && !hasStarted;
 
   els.onboardingPanel.hidden = !shouldShow;
   if (!shouldShow) return;
@@ -256,6 +264,34 @@ function renderOnboarding() {
   els.onboardingPanel.querySelectorAll("[data-onboarding-action]").forEach((button) => {
     button.onclick = () => handleOnboardingAction(button.dataset.onboardingAction);
   });
+}
+
+function renderOnboardingPrompt() {
+  if (!els.onboardingModal) return;
+  const signedIn = Boolean(state.localAccount?.isSignedIn);
+  const isEmptyAccount = !state.habits.length && !state.victories.length;
+  const shouldAsk = signedIn && isEmptyAccount && !state.onboardingPromptSeen && !state.onboardingDismissed;
+  els.onboardingModal.hidden = !shouldAsk;
+}
+
+function acceptOnboardingPrompt() {
+  state.onboardingPromptSeen = true;
+  state.onboardingDismissed = false;
+  saveAndRender();
+  switchTab("today");
+}
+
+function skipOnboardingPrompt() {
+  state.onboardingPromptSeen = true;
+  state.onboardingDismissed = true;
+  saveAndRender();
+}
+
+function startOnboarding() {
+  state.onboardingPromptSeen = true;
+  state.onboardingDismissed = false;
+  saveAndRender();
+  switchTab("today");
 }
 
 async function handleOnboardingAction(action) {
@@ -965,6 +1001,7 @@ async function applySupabaseSession(session) {
     hasSyncedHabits = false;
     hasSyncedJournal = false;
     state.onboardingDismissed = false;
+    state.onboardingPromptSeen = false;
     state.profile = {
       displayName: "",
       avatar: null,
@@ -1896,7 +1933,14 @@ function migrateState(loaded) {
   loaded.coreHabitIds = loaded.coreHabitIds || CORE_HABIT_IDS;
   loaded.checks = loaded.checks || {};
   loaded.authMode = loaded.authMode || "login";
-  loaded.localAccount = loaded.localAccount || { email: "", isSignedIn: false };
+  loaded.onboardingPromptSeen = Boolean(loaded.onboardingPromptSeen);
+  loaded.onboardingDismissed = Boolean(loaded.onboardingDismissed);
+  loaded.localAccount = {
+    email: "",
+    isSignedIn: false,
+    supabaseUserId: "",
+    ...(loaded.localAccount || {}),
+  };
   loaded.profile = {
     ...structuredClone(initialState.profile),
     ...(loaded.profile || {}),
