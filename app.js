@@ -111,6 +111,7 @@ let pendingImage = null;
 let draftHabitChildren = [];
 let supabaseClient = null;
 let supabaseUser = null;
+let hasSyncedHabits = false;
 
 const els = {
   activeDate: document.querySelector("#active-date"),
@@ -496,7 +497,7 @@ function renderProfile() {
 
   els.connectionStatus.className = `connection-status ${connected ? "connected" : "local"}`;
   els.connectionStatus.innerHTML = connected && signedIn
-    ? `<strong>Вход выполнен</strong><span>Профиль сохраняется в Supabase. Дневник и фото подключим следующим шагом.</span>`
+    ? `<strong>Вход выполнен</strong><span>Профиль, привычки и галочки сохраняются в Supabase. Победы, Тень и фото подключим следующим шагом.</span>`
     : connected
     ? `<strong>Supabase настроен</strong><span>Можно зарегистрироваться или войти через настоящий аккаунт.</span>`
     : `<strong>Локальный режим</strong><span>Профиль и дневник пока живут только в этом браузере.</span>`;
@@ -577,7 +578,7 @@ function handleShadowSubmit(event) {
   toast("Запись добавлена в Тень.");
 }
 
-function handleHabitSubmit(event) {
+async function handleHabitSubmit(event) {
   event.preventDefault();
   const name = document.querySelector("#habit-name").value.trim();
   if (!name) {
@@ -596,20 +597,27 @@ function handleHabitSubmit(event) {
     return;
   }
 
-  state.habits.push({
+  const habit = {
     id: uniqueHabitId(name),
     name,
     type: compound && children.length ? "compound" : "simple",
     challenge: 90,
     color: "green",
     children: compound ? children : undefined,
-  });
+  };
+
+  state.habits.push(habit);
 
   els.habitForm.reset();
   draftHabitChildren = [];
   renderHabitChildBuilder();
   saveAndRender();
   switchTab("today");
+
+  if (supabaseClient && supabaseUser) {
+    await createHabitInSupabase(habit);
+  }
+
   toast("Привычка добавлена.");
 }
 
@@ -826,6 +834,9 @@ async function applySupabaseSession(session) {
 
   if (supabaseUser) {
     await loadProfileFromSupabase();
+    await syncHabitsAndChecksWithSupabase();
+  } else {
+    hasSyncedHabits = false;
   }
 
   saveAndRender();
@@ -878,6 +889,270 @@ async function saveProfileToSupabase() {
   };
 
   const { error } = await supabaseClient.from("profiles").upsert(payload);
+  if (error) {
+    toast(error.message);
+    return false;
+  }
+  return true;
+}
+
+async function syncHabitsAndChecksWithSupabase() {
+  if (hasSyncedHabits || !supabaseClient || !supabaseUser) return;
+
+  const remote = await loadHabitsFromSupabase();
+  if (remote === null) return;
+
+  if (remote.length) {
+    state.habits = remote;
+    state.coreHabitIds = remote.filter((habit) => habit.isCore).map((habit) => habit.id);
+    state.habits.forEach((habit) => delete habit.isCore);
+    await loadChecksFromSupabase();
+  } else {
+    const pushed = await pushLocalHabitsToSupabase();
+    if (!pushed) return;
+    hasSyncedHabits = true;
+    await pushAllChecksToSupabase();
+  }
+
+  hasSyncedHabits = true;
+  saveState();
+  render();
+}
+
+async function loadHabitsFromSupabase() {
+  const { data: habits, error } = await supabaseClient
+    .from("habits")
+    .select("id, name, type, challenge_days, color, is_core, sort_order")
+    .eq("user_id", supabaseUser.id)
+    .order("sort_order", { ascending: true });
+
+  if (error) {
+    toast(error.message);
+    return null;
+  }
+
+  const { data: children, error: childError } = await supabaseClient
+    .from("habit_children")
+    .select("id, habit_id, name, sort_order")
+    .eq("user_id", supabaseUser.id)
+    .order("sort_order", { ascending: true });
+
+  if (childError) {
+    toast(childError.message);
+    return null;
+  }
+
+  const childrenByHabit = (children || []).reduce((groups, child) => {
+    groups[child.habit_id] = groups[child.habit_id] || [];
+    groups[child.habit_id].push({ id: child.id, name: child.name });
+    return groups;
+  }, {});
+
+  return (habits || []).map((habit) => ({
+    id: habit.id,
+    name: habit.name,
+    type: habit.type,
+    challenge: habit.challenge_days,
+    color: habit.color,
+    isCore: habit.is_core,
+    children: habit.type === "compound" ? childrenByHabit[habit.id] || [] : undefined,
+  }));
+}
+
+async function pushLocalHabitsToSupabase() {
+  const habitIdMap = {};
+  const childIdMap = {};
+  const nextHabits = [];
+
+  for (const [index, habit] of state.habits.entries()) {
+    const remoteHabit = await createHabitInSupabase(habit, index, false);
+    if (!remoteHabit) return false;
+    habitIdMap[habit.id] = remoteHabit.id;
+    (habit.children || []).forEach((child, childIndex) => {
+      childIdMap[`${habit.id}:${child.id}`] = remoteHabit.children?.[childIndex]?.id;
+    });
+    nextHabits.push(remoteHabit);
+  }
+
+  state.coreHabitIds = (state.coreHabitIds || []).map((id) => habitIdMap[id]).filter(Boolean);
+  state.habits = nextHabits;
+  remapCheckIds(habitIdMap, childIdMap);
+  saveState();
+  render();
+  return true;
+}
+
+async function createHabitInSupabase(habit, sortOrder = state.habits.indexOf(habit), replaceLocal = true) {
+  if (!supabaseClient || !supabaseUser) return null;
+
+  const oldHabitId = habit.id;
+  const oldChildren = habit.children || [];
+  const { data, error } = await supabaseClient
+    .from("habits")
+    .insert({
+      user_id: supabaseUser.id,
+      name: habit.name,
+      type: habit.type,
+      challenge_days: habit.challenge || 90,
+      color: habit.color || "green",
+      is_core: (state.coreHabitIds || []).includes(oldHabitId),
+      sort_order: sortOrder < 0 ? state.habits.length : sortOrder,
+    })
+    .select("id, name, type, challenge_days, color, is_core")
+    .single();
+
+  if (error) {
+    toast(error.message);
+    return null;
+  }
+
+  const remoteHabit = {
+    id: data.id,
+    name: data.name,
+    type: data.type,
+    challenge: data.challenge_days,
+    color: data.color,
+    children: data.type === "compound" ? [] : undefined,
+  };
+
+  if (data.type === "compound" && oldChildren.length) {
+    const rows = oldChildren.map((child, index) => ({
+      habit_id: data.id,
+      user_id: supabaseUser.id,
+      name: child.name,
+      sort_order: index,
+    }));
+    const { data: children, error: childError } = await supabaseClient
+      .from("habit_children")
+      .insert(rows)
+      .select("id, name, sort_order")
+      .order("sort_order", { ascending: true });
+
+    if (childError) {
+      toast(childError.message);
+      return null;
+    }
+
+    remoteHabit.children = (children || []).map((child) => ({ id: child.id, name: child.name }));
+  }
+
+  if (replaceLocal) {
+    const habitIndex = state.habits.findIndex((item) => item.id === oldHabitId);
+    const childIdMap = {};
+    oldChildren.forEach((child, index) => {
+      childIdMap[`${oldHabitId}:${child.id}`] = remoteHabit.children?.[index]?.id;
+    });
+
+    if (habitIndex >= 0) state.habits[habitIndex] = remoteHabit;
+    state.coreHabitIds = (state.coreHabitIds || []).map((id) => id === oldHabitId ? remoteHabit.id : id);
+    remapCheckIds({ [oldHabitId]: remoteHabit.id }, childIdMap);
+    saveAndRender();
+  }
+
+  return remoteHabit;
+}
+
+function remapCheckIds(habitIdMap, childIdMap) {
+  Object.entries(state.checks || {}).forEach(([date, dayChecks]) => {
+    Object.entries(dayChecks).forEach(([oldHabitId, entry]) => {
+      const newHabitId = habitIdMap[oldHabitId];
+      if (!newHabitId) return;
+
+      const nextEntry = { ...entry };
+      if (entry.children) {
+        nextEntry.children = {};
+        Object.entries(entry.children).forEach(([oldChildId, done]) => {
+          const newChildId = childIdMap[`${oldHabitId}:${oldChildId}`];
+          if (newChildId) nextEntry.children[newChildId] = done;
+        });
+      }
+
+      dayChecks[newHabitId] = nextEntry;
+      delete dayChecks[oldHabitId];
+    });
+    state.checks[date] = dayChecks;
+  });
+}
+
+async function loadChecksFromSupabase() {
+  const { data, error } = await supabaseClient
+    .from("habit_checks")
+    .select("habit_id, child_id, check_date, done")
+    .eq("user_id", supabaseUser.id)
+    .eq("done", true);
+
+  if (error) {
+    toast(error.message);
+    return false;
+  }
+
+  state.checks = {};
+  (data || []).forEach((row) => {
+    state.checks[row.check_date] = state.checks[row.check_date] || {};
+    const day = state.checks[row.check_date];
+    if (row.child_id) {
+      day[row.habit_id] = day[row.habit_id] || { children: {} };
+      day[row.habit_id].children[row.child_id] = true;
+    } else {
+      day[row.habit_id] = { done: true };
+    }
+  });
+  return true;
+}
+
+async function pushAllChecksToSupabase() {
+  for (const date of Object.keys(state.checks || {})) {
+    for (const habitId of Object.keys(state.checks[date] || {})) {
+      await saveHabitCheckToSupabase(habitId, date);
+    }
+  }
+}
+
+async function saveHabitCheckToSupabase(habitId, date) {
+  if (!supabaseClient || !supabaseUser || !hasSyncedHabits) return true;
+
+  const habit = state.habits.find((item) => item.id === habitId);
+  if (!habit) return false;
+
+  const { error: deleteError } = await supabaseClient
+    .from("habit_checks")
+    .delete()
+    .eq("user_id", supabaseUser.id)
+    .eq("habit_id", habitId)
+    .eq("check_date", date);
+
+  if (deleteError) {
+    toast(deleteError.message);
+    return false;
+  }
+
+  const entry = state.checks[date]?.[habitId];
+  const rows = [];
+  if (habit.type === "compound") {
+    (habit.children || []).forEach((child) => {
+      if (entry?.children?.[child.id]) {
+        rows.push({
+          user_id: supabaseUser.id,
+          habit_id: habit.id,
+          child_id: child.id,
+          check_date: date,
+          done: true,
+        });
+      }
+    });
+  } else if (entry?.done) {
+    rows.push({
+      user_id: supabaseUser.id,
+      habit_id: habit.id,
+      child_id: null,
+      check_date: date,
+      done: true,
+    });
+  }
+
+  if (!rows.length) return true;
+
+  const { error } = await supabaseClient.from("habit_checks").insert(rows);
   if (error) {
     toast(error.message);
     return false;
@@ -943,7 +1218,7 @@ function switchAuthMode(mode, persist = true) {
   if (persist) saveAndRender();
 }
 
-function toggleHabit(habitId) {
+async function toggleHabit(habitId) {
   const habit = state.habits.find((item) => item.id === habitId);
   const checks = getDateChecks(state.activeDate);
   const current = checks[habitId] || {};
@@ -958,15 +1233,17 @@ function toggleHabit(habitId) {
   }
 
   saveAndRender();
+  await saveHabitCheckToSupabase(habitId, state.activeDate);
 }
 
-function toggleChild(habitId, childId) {
+async function toggleChild(habitId, childId) {
   const checks = getDateChecks(state.activeDate);
   const current = checks[habitId] || { children: {} };
   current.children = current.children || {};
   current.children[childId] = !current.children[childId];
   checks[habitId] = current;
   saveAndRender();
+  await saveHabitCheckToSupabase(habitId, state.activeDate);
 }
 
 function toggleHabitCollapse(habitId) {
@@ -1152,10 +1429,22 @@ function deleteVictory(id) {
   toast("Победа удалена.");
 }
 
-function deleteHabit(id) {
+async function deleteHabit(id) {
   const habit = state.habits.find((item) => item.id === id);
   if (!habit) return;
   if (!confirm(`Вы уверены, что хотите удалить привычку "${habit.name}"? Все отметки по ней тоже удалятся.`)) return;
+
+  if (supabaseClient && supabaseUser) {
+    const { error } = await supabaseClient
+      .from("habits")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", supabaseUser.id);
+    if (error) {
+      toast(error.message);
+      return;
+    }
+  }
 
   state.habits = state.habits.filter((item) => item.id !== id);
   state.coreHabitIds = (state.coreHabitIds || CORE_HABIT_IDS).filter((habitId) => habitId !== id);
