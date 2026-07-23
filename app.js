@@ -1,5 +1,5 @@
 const STORAGE_KEY = "victory-diary-mvp-v1";
-const MAX_IMAGE_SIZE_BYTES = 1.8 * 1024 * 1024;
+const MAX_IMAGE_SIZE_BYTES = 6 * 1024 * 1024;
 
 const roles = [
   "Я как человек",
@@ -532,6 +532,15 @@ async function handleVictorySubmit(event) {
     return;
   }
 
+  let image = pendingImage;
+  if (pendingImage?.file && supabaseClient && supabaseUser) {
+    const uploaded = await uploadMediaFile(pendingImage.file, "victories");
+    if (!uploaded) return;
+    image = uploaded;
+  } else if (pendingImage?.preview) {
+    image = pendingImage.preview;
+  }
+
   const victory = {
     id: uid(),
     date: document.querySelector("#victory-date").value || state.activeDate,
@@ -539,7 +548,7 @@ async function handleVictorySubmit(event) {
     category: document.querySelector("#victory-category").value,
     role: document.querySelector("#victory-role").value,
     tags: parseTags(document.querySelector("#victory-tags").value),
-    image: pendingImage,
+    image,
     source: "manual",
   };
 
@@ -688,11 +697,24 @@ async function handleProfileSubmit(event) {
   toast(supabaseClient && supabaseUser ? "Профиль сохранен в Supabase." : "Профиль сохранен.");
 }
 
-function handleAvatarUpload(event) {
+async function handleAvatarUpload(event) {
   const file = event.target.files?.[0];
   if (!file) return;
   if (!validateImageFile(file)) {
     event.target.value = "";
+    return;
+  }
+
+  if (supabaseClient && supabaseUser) {
+    const uploaded = await uploadMediaFile(file, "avatars");
+    if (!uploaded) return;
+    state.profile = {
+      ...(state.profile || {}),
+      avatar: uploaded,
+    };
+    await saveProfileToSupabase();
+    saveAndRender();
+    toast("Аватарка загружена в Supabase.");
     return;
   }
 
@@ -764,8 +786,11 @@ function handleImageUpload(event) {
 
   const reader = new FileReader();
   reader.onload = () => {
-    pendingImage = reader.result;
-    els.imagePreview.innerHTML = `<img src="${pendingImage}" alt="">`;
+    pendingImage = {
+      file,
+      preview: reader.result,
+    };
+    els.imagePreview.innerHTML = `<img src="${pendingImage.preview}" alt="">`;
   };
   reader.readAsDataURL(file);
 }
@@ -1276,6 +1301,10 @@ async function pushLocalShadowsToSupabase() {
 async function createVictoryInSupabase(victory, replaceLocal = true) {
   if (!supabaseClient || !supabaseUser) return null;
   const localId = victory.id;
+  let imageUrl = victory.image?.startsWith("http") ? victory.image : null;
+  if (!imageUrl && victory.imageFile) {
+    imageUrl = await uploadMediaFile(victory.imageFile, "victories");
+  }
   const payload = {
     user_id: supabaseUser.id,
     victory_date: victory.date || state.activeDate,
@@ -1283,7 +1312,7 @@ async function createVictoryInSupabase(victory, replaceLocal = true) {
     category: victory.category || null,
     role: victory.role || null,
     tags: victory.tags || [],
-    image_url: victory.image?.startsWith("http") ? victory.image : null,
+    image_url: imageUrl,
     source: victory.source || "manual",
   };
 
@@ -1319,6 +1348,34 @@ async function createVictoryInSupabase(victory, replaceLocal = true) {
   }
 
   return remoteVictory;
+}
+
+async function uploadMediaFile(file, folder) {
+  if (!supabaseClient || !supabaseUser) {
+    toast("Сначала войди в аккаунт.");
+    return null;
+  }
+
+  const extension = getFileExtension(file.name, file.type);
+  const path = `${supabaseUser.id}/${folder}/${Date.now()}-${uid()}.${extension}`;
+  const { error } = await supabaseClient.storage
+    .from("victory-media")
+    .upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type,
+    });
+
+  if (error) {
+    toast(error.message);
+    return null;
+  }
+
+  const { data } = supabaseClient.storage
+    .from("victory-media")
+    .getPublicUrl(path);
+
+  return data.publicUrl;
 }
 
 async function createShadowInSupabase(shadow, replaceLocal = true) {
@@ -1421,10 +1478,18 @@ function validateImageFile(file) {
     return false;
   }
   if (file.size > MAX_IMAGE_SIZE_BYTES) {
-    toast("Фото слишком большое. Пока загрузи изображение до 1.8 МБ.");
+    toast("Фото слишком большое. Пока загрузи изображение до 6 МБ.");
     return false;
   }
   return true;
+}
+
+function getFileExtension(name, type) {
+  const fromName = name.split(".").pop()?.toLowerCase();
+  if (fromName && fromName.length <= 5) return fromName;
+  if (type === "image/png") return "png";
+  if (type === "image/webp") return "webp";
+  return "jpg";
 }
 
 function switchTab(tab, persist = true) {
