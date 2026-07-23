@@ -8,7 +8,49 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="app-shell">
+    <section class="auth-gate" id="auth-gate" hidden>
+      <div class="auth-hero">
+        <div class="auth-brand">
+          <div class="brand-mark">ДП</div>
+          <span>Дневник Побед</span>
+        </div>
+        <div>
+          <p class="eyebrow">Личная система роста</p>
+          <h1>Замечай победы. Собирай уверенность.</h1>
+          <p class="auth-lead">Этот дневник помогает видеть свой путь каждый день: отмечать привычки, сохранять победы, честно разбирать Тень и возвращать себе ощущение силы.</p>
+        </div>
+        <div class="auth-points">
+          <span>✓ ежедневные галочки</span>
+          <span>✓ стена побед с фото</span>
+          <span>✓ прогресс по дням</span>
+        </div>
+      </div>
+
+      <div class="auth-card">
+        <div class="auth-tabs" role="tablist" aria-label="Вход или регистрация">
+          <button class="form-tab active" data-gate-auth-mode="login" type="button">Вход</button>
+          <button class="form-tab" data-gate-auth-mode="register" type="button">Регистрация</button>
+        </div>
+        <form class="auth-form" id="gate-auth-form">
+          <label class="field gate-auth-name-field" hidden>
+            <span>Имя</span>
+            <input id="gate-auth-name" type="text" placeholder="Илья" />
+          </label>
+          <label class="field">
+            <span>Email</span>
+            <input id="gate-auth-email" type="email" placeholder="name@example.com" autocomplete="email" />
+          </label>
+          <label class="field">
+            <span>Пароль</span>
+            <input id="gate-auth-password" type="password" placeholder="Минимум 6 символов" autocomplete="current-password" />
+          </label>
+          <button class="primary-action wide" id="gate-auth-submit" type="submit">Войти</button>
+        </form>
+        <p class="profile-hint">После входа откроется твой личный дневник. У каждого пользователя свои привычки, победы и записи.</p>
+      </div>
+    </section>
+
+    <div class="app-shell" id="app-shell">
       <aside class="side-nav" aria-label="Разделы">
         <div class="brand">
           <div class="brand-mark">ДП</div>

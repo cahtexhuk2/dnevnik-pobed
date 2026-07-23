@@ -113,6 +113,14 @@ let hasSyncedJournal = false;
 let onboardingMode = null;
 
 const els = {
+  appShell: document.querySelector("#app-shell"),
+  authGate: document.querySelector("#auth-gate"),
+  gateAuthForm: document.querySelector("#gate-auth-form"),
+  gateAuthNameField: document.querySelector(".gate-auth-name-field"),
+  gateAuthName: document.querySelector("#gate-auth-name"),
+  gateAuthEmail: document.querySelector("#gate-auth-email"),
+  gateAuthPassword: document.querySelector("#gate-auth-password"),
+  gateAuthSubmit: document.querySelector("#gate-auth-submit"),
   activeDate: document.querySelector("#active-date"),
   todayWeekday: document.querySelector("#today-weekday"),
   todaySummary: document.querySelector("#today-summary"),
@@ -188,6 +196,10 @@ function boot() {
     button.addEventListener("click", () => switchAuthMode(button.dataset.authMode));
   });
 
+  document.querySelectorAll("[data-gate-auth-mode]").forEach((button) => {
+    button.addEventListener("click", () => switchAuthMode(button.dataset.gateAuthMode));
+  });
+
   els.activeDate.value = state.activeDate;
   els.activeDate.addEventListener("change", (event) => {
     state.activeDate = event.target.value;
@@ -210,6 +222,7 @@ function boot() {
   els.victoryForm.addEventListener("submit", handleVictorySubmit);
   els.shadowForm.addEventListener("submit", handleShadowSubmit);
   els.habitForm.addEventListener("submit", handleHabitSubmit);
+  els.gateAuthForm.addEventListener("submit", handleGateAuthSubmit);
   els.authForm.addEventListener("submit", handleLocalAuthSubmit);
   els.profileForm.addEventListener("submit", handleProfileSubmit);
   els.profileAvatarInput.addEventListener("change", handleAvatarUpload);
@@ -226,6 +239,7 @@ function boot() {
 }
 
 function render() {
+  renderAuthGate();
   renderAccount();
   renderOnboardingModal();
   renderToday();
@@ -233,6 +247,17 @@ function render() {
   renderProgress();
   renderShadow();
   renderProfile();
+}
+
+function renderAuthGate() {
+  const signedIn = Boolean(state.localAccount?.isSignedIn);
+  els.authGate.hidden = signedIn;
+  els.appShell.hidden = !signedIn;
+  els.gateAuthNameField.hidden = state.authMode !== "register";
+  els.gateAuthEmail.value = state.localAccount?.isSignedIn ? state.localAccount?.email || "" : els.gateAuthEmail.value;
+  els.gateAuthPassword.value = "";
+  els.gateAuthName.value = state.profile?.displayName || "";
+  els.gateAuthSubmit.textContent = state.authMode === "register" ? "Зарегистрироваться" : "Войти";
 }
 
 function shouldPromptOnboarding() {
@@ -811,11 +836,23 @@ async function handleHabitSubmit(event) {
   toast("Привычка добавлена.");
 }
 
+async function handleGateAuthSubmit(event) {
+  event.preventDefault();
+  const email = els.gateAuthEmail.value.trim();
+  const password = els.gateAuthPassword.value.trim();
+  const name = els.gateAuthName.value.trim();
+  await submitAuth(email, password, name);
+}
+
 async function handleLocalAuthSubmit(event) {
   event.preventDefault();
   const email = els.authEmail.value.trim();
   const password = els.authPassword.value.trim();
+  const name = els.authName.value.trim();
+  await submitAuth(email, password, name);
+}
 
+async function submitAuth(email, password, name = "") {
   if (!email || !password) {
     toast("Укажи email и пароль.");
     return;
@@ -827,7 +864,7 @@ async function handleLocalAuthSubmit(event) {
   }
 
   if (supabaseClient) {
-    await handleSupabaseAuth(email, password);
+    await handleSupabaseAuth(email, password, name);
     return;
   }
 
@@ -836,8 +873,8 @@ async function handleLocalAuthSubmit(event) {
     isSignedIn: true,
   };
 
-  if (state.authMode === "register" && els.authName.value.trim()) {
-    state.profile.displayName = els.authName.value.trim();
+  if (state.authMode === "register" && name) {
+    state.profile.displayName = name;
   }
 
   saveAndRender();
@@ -989,14 +1026,14 @@ async function initializeSupabaseAuth() {
   });
 }
 
-async function handleSupabaseAuth(email, password) {
+async function handleSupabaseAuth(email, password, displayName = "") {
   if (state.authMode === "register") {
     const { data, error } = await supabaseClient.auth.signUp({
       email,
       password,
       options: {
         data: {
-          display_name: els.authName.value.trim() || state.profile?.displayName || "",
+          display_name: displayName || state.profile?.displayName || "",
         },
       },
     });
@@ -1006,8 +1043,8 @@ async function handleSupabaseAuth(email, password) {
       return;
     }
 
-    if (els.authName.value.trim()) {
-      state.profile.displayName = els.authName.value.trim();
+    if (displayName) {
+      state.profile.displayName = displayName;
     }
 
     await applySupabaseSession(data.session);
@@ -1668,7 +1705,12 @@ function switchAuthMode(mode, persist = true) {
   document.querySelectorAll("[data-auth-mode]").forEach((tab) => {
     tab.classList.toggle("active", tab.dataset.authMode === mode);
   });
+  document.querySelectorAll("[data-gate-auth-mode]").forEach((tab) => {
+    tab.classList.toggle("active", tab.dataset.gateAuthMode === mode);
+  });
   els.authNameField.hidden = mode !== "register";
+  els.gateAuthNameField.hidden = mode !== "register";
+  els.gateAuthSubmit.textContent = mode === "register" ? "Зарегистрироваться" : "Войти";
   els.authSubmit.textContent = isSupabaseConfigured()
     ? mode === "register" ? "Зарегистрироваться" : "Войти"
     : mode === "register" ? "Создать локальный профиль" : "Войти локально";
