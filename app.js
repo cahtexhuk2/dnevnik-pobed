@@ -112,6 +112,7 @@ let draftHabitChildren = [];
 let supabaseClient = null;
 let supabaseUser = null;
 let hasSyncedHabits = false;
+let hasSyncedJournal = false;
 
 const els = {
   activeDate: document.querySelector("#active-date"),
@@ -497,7 +498,7 @@ function renderProfile() {
 
   els.connectionStatus.className = `connection-status ${connected ? "connected" : "local"}`;
   els.connectionStatus.innerHTML = connected && signedIn
-    ? `<strong>Вход выполнен</strong><span>Профиль, привычки и галочки сохраняются в Supabase. Победы, Тень и фото подключим следующим шагом.</span>`
+    ? `<strong>Вход выполнен</strong><span>Профиль, привычки, галочки, победы и Тень сохраняются в Supabase. Фото подключим следующим шагом.</span>`
     : connected
     ? `<strong>Supabase настроен</strong><span>Можно зарегистрироваться или войти через настоящий аккаунт.</span>`
     : `<strong>Локальный режим</strong><span>Профиль и дневник пока живут только в этом браузере.</span>`;
@@ -523,7 +524,7 @@ function renderProfile() {
   els.authSignOut.hidden = !signedIn;
 }
 
-function handleVictorySubmit(event) {
+async function handleVictorySubmit(event) {
   event.preventDefault();
   const text = document.querySelector("#victory-text").value.trim();
   if (!text) {
@@ -543,6 +544,10 @@ function handleVictorySubmit(event) {
   };
 
   state.victories.push(victory);
+  if (supabaseClient && supabaseUser) {
+    await createVictoryInSupabase(victory);
+  }
+
   pendingImage = null;
   els.victoryForm.reset();
   document.querySelector("#victory-date").value = state.activeDate;
@@ -552,7 +557,7 @@ function handleVictorySubmit(event) {
   toast("Победа сохранена.");
 }
 
-function handleShadowSubmit(event) {
+async function handleShadowSubmit(event) {
   event.preventDefault();
   const situation = document.querySelector("#shadow-situation").value.trim();
   if (!situation) {
@@ -560,7 +565,7 @@ function handleShadowSubmit(event) {
     return;
   }
 
-  state.shadows.push({
+  const shadow = {
     id: uid(),
     date: state.activeDate,
     situation,
@@ -570,7 +575,12 @@ function handleShadowSubmit(event) {
     repair: document.querySelector("#shadow-repair").value.trim(),
     status: "открыто",
     tags: inferShadowTags([situation, document.querySelector("#shadow-pattern").value, document.querySelector("#shadow-fear").value].join(" ")),
-  });
+  };
+
+  state.shadows.push(shadow);
+  if (supabaseClient && supabaseUser) {
+    await createShadowInSupabase(shadow);
+  }
 
   els.shadowForm.reset();
   saveAndRender();
@@ -835,8 +845,10 @@ async function applySupabaseSession(session) {
   if (supabaseUser) {
     await loadProfileFromSupabase();
     await syncHabitsAndChecksWithSupabase();
+    await syncJournalWithSupabase();
   } else {
     hasSyncedHabits = false;
+    hasSyncedJournal = false;
   }
 
   saveAndRender();
@@ -1160,6 +1172,235 @@ async function saveHabitCheckToSupabase(habitId, date) {
   return true;
 }
 
+async function syncJournalWithSupabase() {
+  if (hasSyncedJournal || !supabaseClient || !supabaseUser) return;
+
+  const [remoteVictories, remoteShadows] = await Promise.all([
+    loadVictoriesFromSupabase(),
+    loadShadowsFromSupabase(),
+  ]);
+
+  if (remoteVictories === null || remoteShadows === null) return;
+
+  if (remoteVictories.length) {
+    state.victories = remoteVictories;
+  } else if (state.victories.length) {
+    await pushLocalVictoriesToSupabase();
+  }
+
+  if (remoteShadows.length) {
+    state.shadows = remoteShadows;
+  } else if (state.shadows.length) {
+    await pushLocalShadowsToSupabase();
+  }
+
+  hasSyncedJournal = true;
+  saveState();
+  render();
+}
+
+async function loadVictoriesFromSupabase() {
+  const { data, error } = await supabaseClient
+    .from("victories")
+    .select("id, victory_date, text, category, role, tags, image_url, source, created_at")
+    .eq("user_id", supabaseUser.id)
+    .order("victory_date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    toast(error.message);
+    return null;
+  }
+
+  return (data || []).map((victory) => ({
+    id: victory.id,
+    date: victory.victory_date,
+    text: victory.text,
+    category: victory.category || "Дисциплина",
+    role: victory.role || "",
+    tags: victory.tags || [],
+    image: victory.image_url || null,
+    source: victory.source || "manual",
+  }));
+}
+
+async function loadShadowsFromSupabase() {
+  const { data, error } = await supabaseClient
+    .from("shadow_entries")
+    .select("id, entry_date, situation, pattern, fear, mature_action, repair_step, status, tags, converted_victory_id, created_at")
+    .eq("user_id", supabaseUser.id)
+    .order("entry_date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    toast(error.message);
+    return null;
+  }
+
+  return (data || []).map((entry) => ({
+    id: entry.id,
+    date: entry.entry_date,
+    situation: entry.situation,
+    pattern: entry.pattern || "",
+    fear: entry.fear || "",
+    mature: entry.mature_action || "",
+    repair: entry.repair_step || "",
+    status: entry.status || "открыто",
+    tags: entry.tags || [],
+    convertedVictoryId: entry.converted_victory_id || null,
+  }));
+}
+
+async function pushLocalVictoriesToSupabase() {
+  const nextVictories = [];
+  for (const victory of state.victories) {
+    const remoteVictory = await createVictoryInSupabase(victory, false);
+    if (!remoteVictory) return false;
+    nextVictories.push(remoteVictory);
+  }
+  state.victories = nextVictories;
+  return true;
+}
+
+async function pushLocalShadowsToSupabase() {
+  const nextShadows = [];
+  for (const shadow of state.shadows) {
+    const remoteShadow = await createShadowInSupabase(shadow, false);
+    if (!remoteShadow) return false;
+    nextShadows.push(remoteShadow);
+  }
+  state.shadows = nextShadows;
+  return true;
+}
+
+async function createVictoryInSupabase(victory, replaceLocal = true) {
+  if (!supabaseClient || !supabaseUser) return null;
+  const localId = victory.id;
+  const payload = {
+    user_id: supabaseUser.id,
+    victory_date: victory.date || state.activeDate,
+    text: victory.text,
+    category: victory.category || null,
+    role: victory.role || null,
+    tags: victory.tags || [],
+    image_url: victory.image?.startsWith("http") ? victory.image : null,
+    source: victory.source || "manual",
+  };
+
+  const { data, error } = await supabaseClient
+    .from("victories")
+    .insert(payload)
+    .select("id, victory_date, text, category, role, tags, image_url, source")
+    .single();
+
+  if (error) {
+    toast(error.message);
+    return null;
+  }
+
+  const remoteVictory = {
+    id: data.id,
+    date: data.victory_date,
+    text: data.text,
+    category: data.category || "Дисциплина",
+    role: data.role || "",
+    tags: data.tags || [],
+    image: data.image_url || victory.image || null,
+    source: data.source || "manual",
+  };
+
+  if (replaceLocal) {
+    const index = state.victories.findIndex((item) => item.id === localId);
+    if (index >= 0) {
+      state.victories[index] = remoteVictory;
+      saveState();
+      render();
+    }
+  }
+
+  return remoteVictory;
+}
+
+async function createShadowInSupabase(shadow, replaceLocal = true) {
+  if (!supabaseClient || !supabaseUser) return null;
+  const localId = shadow.id;
+  const payload = shadowToSupabasePayload(shadow);
+
+  const { data, error } = await supabaseClient
+    .from("shadow_entries")
+    .insert(payload)
+    .select("id, entry_date, situation, pattern, fear, mature_action, repair_step, status, tags, converted_victory_id")
+    .single();
+
+  if (error) {
+    toast(error.message);
+    return null;
+  }
+
+  const remoteShadow = shadowFromSupabaseRow(data);
+  if (replaceLocal) {
+    const index = state.shadows.findIndex((item) => item.id === localId);
+    if (index >= 0) {
+      state.shadows[index] = remoteShadow;
+      saveState();
+      render();
+    }
+  }
+
+  return remoteShadow;
+}
+
+async function updateShadowInSupabase(shadow, convertedVictoryId = shadow.convertedVictoryId || null) {
+  if (!supabaseClient || !supabaseUser) return false;
+  const payload = {
+    ...shadowToSupabasePayload(shadow),
+    converted_victory_id: convertedVictoryId,
+  };
+
+  const { error } = await supabaseClient
+    .from("shadow_entries")
+    .update(payload)
+    .eq("id", shadow.id)
+    .eq("user_id", supabaseUser.id);
+
+  if (error) {
+    toast(error.message);
+    return false;
+  }
+  shadow.convertedVictoryId = convertedVictoryId;
+  return true;
+}
+
+function shadowToSupabasePayload(shadow) {
+  return {
+    user_id: supabaseUser.id,
+    entry_date: shadow.date || state.activeDate,
+    situation: shadow.situation,
+    pattern: shadow.pattern || null,
+    fear: shadow.fear || null,
+    mature_action: shadow.mature || null,
+    repair_step: shadow.repair || null,
+    status: shadow.status || "открыто",
+    tags: shadow.tags || [],
+    converted_victory_id: shadow.convertedVictoryId || null,
+  };
+}
+
+function shadowFromSupabaseRow(entry) {
+  return {
+    id: entry.id,
+    date: entry.entry_date,
+    situation: entry.situation,
+    pattern: entry.pattern || "",
+    fear: entry.fear || "",
+    mature: entry.mature_action || "",
+    repair: entry.repair_step || "",
+    status: entry.status || "открыто",
+    tags: entry.tags || [],
+    convertedVictoryId: entry.converted_victory_id || null,
+  };
+}
+
 async function handleSignOut() {
   if (supabaseClient) {
     const { error } = await supabaseClient.auth.signOut();
@@ -1369,10 +1610,10 @@ function buildAchievements() {
   });
 }
 
-function createAchievementVictory(habitId, days) {
+async function createAchievementVictory(habitId, days) {
   const habit = state.habits.find((item) => item.id === habitId);
   if (!habit) return;
-  state.victories.push({
+  const victory = {
     id: uid(),
     date: state.activeDate,
     text: `Я сделал ${days} дней подряд: ${habit.name}.`,
@@ -1381,17 +1622,21 @@ function createAchievementVictory(habitId, days) {
     tags: ["серия", `${days} дней`],
     image: null,
     source: `achievement:${habit.id}:${days}`,
-  });
+  };
+  state.victories.push(victory);
+  if (supabaseClient && supabaseUser) {
+    await createVictoryInSupabase(victory);
+  }
   saveAndRender();
   switchTab("victories");
   toast("Достижение стало победой.");
 }
 
-function shadowToVictory(id) {
+async function shadowToVictory(id) {
   const entry = state.shadows.find((item) => item.id === id);
   if (!entry) return;
   entry.status = "превращено в победу";
-  state.victories.push({
+  const victory = {
     id: uid(),
     date: state.activeDate,
     text: `Я увидел свою тень и сделал шаг исправления: ${entry.repair || entry.mature || entry.situation}`,
@@ -1400,30 +1645,62 @@ function shadowToVictory(id) {
     tags: ["тень", "ответственность", ...(entry.tags || [])],
     image: null,
     source: `shadow:${entry.id}`,
-  });
+  };
+  state.victories.push(victory);
+
+  if (supabaseClient && supabaseUser) {
+    const remoteVictory = await createVictoryInSupabase(victory);
+    await updateShadowInSupabase(entry, remoteVictory?.id);
+  }
+
   saveAndRender();
   switchTab("victories");
   toast("Тень превращена в победу.");
 }
 
-function cycleShadowStatus(id) {
+async function cycleShadowStatus(id) {
   const statuses = ["открыто", "осознал", "исправил", "превращено в победу"];
   const entry = state.shadows.find((item) => item.id === id);
   if (!entry) return;
   const next = (statuses.indexOf(entry.status) + 1) % statuses.length;
   entry.status = statuses[next];
+  if (supabaseClient && supabaseUser) {
+    await updateShadowInSupabase(entry);
+  }
   saveAndRender();
 }
 
-function deleteShadow(id) {
+async function deleteShadow(id) {
   if (!confirm("Вы уверены, что хотите удалить эту запись из Тени?")) return;
+  if (supabaseClient && supabaseUser) {
+    const { error } = await supabaseClient
+      .from("shadow_entries")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", supabaseUser.id);
+    if (error) {
+      toast(error.message);
+      return;
+    }
+  }
   state.shadows = state.shadows.filter((entry) => entry.id !== id);
   saveAndRender();
   toast("Запись удалена.");
 }
 
-function deleteVictory(id) {
+async function deleteVictory(id) {
   if (!confirm("Вы уверены, что хотите удалить эту победу?")) return;
+  if (supabaseClient && supabaseUser) {
+    const { error } = await supabaseClient
+      .from("victories")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", supabaseUser.id);
+    if (error) {
+      toast(error.message);
+      return;
+    }
+  }
   state.victories = state.victories.filter((victory) => victory.id !== id);
   saveAndRender();
   toast("Победа удалена.");
