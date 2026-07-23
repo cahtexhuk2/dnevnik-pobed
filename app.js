@@ -84,6 +84,7 @@ const initialState = {
   localAccount: {
     email: "",
     isSignedIn: false,
+    supabaseUserId: "",
   },
   profile: {
     displayName: "",
@@ -230,7 +231,8 @@ function renderOnboarding() {
   const hasHabit = state.habits.length > 0;
   const hasVictory = state.victories.length > 0;
   const hasStarted = hasProfile && hasHabit && hasVictory;
-  const shouldShow = !state.onboardingDismissed && !hasStarted;
+  const isEmptyAccount = !hasHabit && !hasVictory;
+  const shouldShow = (!state.onboardingDismissed || isEmptyAccount) && !hasStarted;
 
   els.onboardingPanel.hidden = !shouldShow;
   if (!shouldShow) return;
@@ -954,10 +956,35 @@ async function handleSupabaseAuth(email, password) {
 }
 
 async function applySupabaseSession(session) {
-  supabaseUser = session?.user || null;
+  const nextUser = session?.user || null;
+  const previousUserId = state.localAccount?.supabaseUserId || "";
+  const nextUserId = nextUser?.id || "";
+  const changedUser = previousUserId && nextUserId && previousUserId !== nextUserId;
+
+  if (changedUser) {
+    hasSyncedHabits = false;
+    hasSyncedJournal = false;
+    state.onboardingDismissed = false;
+    state.profile = {
+      displayName: "",
+      avatar: null,
+      birthYear: "",
+      city: "",
+      bio: "",
+      journeyStartDate: JOURNEY_START_DATE,
+    };
+    state.habits = [];
+    state.checks = {};
+    state.victories = [];
+    state.shadows = [];
+    state.coreHabitIds = [];
+  }
+
+  supabaseUser = nextUser;
   state.localAccount = {
     email: supabaseUser?.email || state.localAccount?.email || "",
     isSignedIn: Boolean(supabaseUser),
+    supabaseUserId: nextUserId,
   };
 
   if (supabaseUser) {
