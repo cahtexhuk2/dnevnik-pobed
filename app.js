@@ -24,7 +24,7 @@ const categories = [
 ];
 
 const JOURNEY_START_DATE = "2026-05-26";
-const CORE_HABIT_IDS = ["wake-up", "padmasadana", "vocal", "breakfast", "vegetarian"];
+const CORE_HABIT_IDS = [];
 
 const initialState = {
   activeTab: "today",
@@ -39,7 +39,7 @@ const initialState = {
     isSignedIn: false,
   },
   profile: {
-    displayName: "Илья",
+    displayName: "",
     avatar: null,
     birthYear: "",
     city: "",
@@ -48,59 +48,7 @@ const initialState = {
   },
   roles,
   categories,
-  habits: [
-    {
-      id: "wake-up",
-      name: "Подъем сразу с будильником",
-      type: "simple",
-      challenge: 90,
-      color: "green",
-    },
-    {
-      id: "padmasadana",
-      name: "Подмасадана / духовные практики",
-      type: "compound",
-      challenge: 90,
-      color: "green",
-      children: [
-        { id: "asanas", name: "Асаны" },
-        { id: "pranayama-3", name: "Пранаяма 3-стадийная" },
-        { id: "bhastrika", name: "Бхастрика" },
-        { id: "kriya-small", name: "Крия малая" },
-        { id: "bogar", name: "Богар пранаяма" },
-        { id: "sahaj", name: "Медитация сахадж самадхи" },
-        { id: "nadi", name: "Нади шодхана пранаяма" },
-      ],
-    },
-    {
-      id: "vocal",
-      name: "Вокал",
-      type: "simple",
-      challenge: 120,
-      color: "blue",
-    },
-    {
-      id: "breakfast",
-      name: "Завтрак",
-      type: "simple",
-      challenge: 90,
-      color: "amber",
-    },
-    {
-      id: "vegetarian",
-      name: "Вегетарианство",
-      type: "simple",
-      challenge: 90,
-      color: "green",
-    },
-    {
-      id: "gym",
-      name: "Тренажерный зал",
-      type: "simple",
-      challenge: 36,
-      color: "blue",
-    },
-  ],
+  habits: [],
   checks: {},
   victories: [],
   shadows: [],
@@ -250,6 +198,11 @@ function renderToday() {
     metric(`${partialHabits}`, "частично"),
     metric(`${state.habits.length}`, "привычек"),
   ].join("");
+
+  if (!state.habits.length) {
+    els.habitList.innerHTML = `<div class="empty-state">Привычек пока нет. Открой вкладку "Добавить" и создай первую привычку.</div>`;
+    return;
+  }
 
   els.habitList.innerHTML = state.habits.map((habit) => renderHabit(habit, date)).join("");
   els.habitList.querySelectorAll("[data-toggle-habit]").forEach((button) => {
@@ -680,7 +633,7 @@ async function handleProfileSubmit(event) {
 
   state.profile = {
     ...(state.profile || {}),
-    displayName: els.profileDisplayName.value.trim() || "Илья",
+    displayName: els.profileDisplayName.value.trim(),
     birthYear,
     city: els.profileCity.value.trim(),
     bio: els.profileBio.value.trim(),
@@ -825,7 +778,7 @@ async function handleSupabaseAuth(email, password) {
       password,
       options: {
         data: {
-          display_name: els.authName.value.trim() || state.profile?.displayName || "Илья",
+          display_name: els.authName.value.trim() || state.profile?.displayName || "",
         },
       },
     });
@@ -898,7 +851,7 @@ async function loadProfileFromSupabase() {
 
   state.profile = {
     ...(state.profile || {}),
-    displayName: data.display_name || state.profile?.displayName || "Илья",
+    displayName: data.display_name || state.profile?.displayName || "",
     avatar: data.avatar_url || state.profile?.avatar || null,
     birthYear: data.birth_year || "",
     city: data.city || "",
@@ -917,7 +870,7 @@ async function saveProfileToSupabase() {
   const profile = state.profile || {};
   const payload = {
     id: supabaseUser.id,
-    display_name: profile.displayName || "Илья",
+    display_name: profile.displayName || null,
     avatar_url: profile.avatar?.startsWith("http") ? profile.avatar : null,
     birth_year: profile.birthYear ? Number(profile.birthYear) : null,
     city: profile.city || null,
@@ -945,10 +898,9 @@ async function syncHabitsAndChecksWithSupabase() {
     state.habits.forEach((habit) => delete habit.isCore);
     await loadChecksFromSupabase();
   } else {
-    const pushed = await pushLocalHabitsToSupabase();
-    if (!pushed) return;
-    hasSyncedHabits = true;
-    await pushAllChecksToSupabase();
+    state.habits = [];
+    state.coreHabitIds = [];
+    state.checks = {};
   }
 
   hasSyncedHabits = true;
@@ -994,29 +946,6 @@ async function loadHabitsFromSupabase() {
     isCore: habit.is_core,
     children: habit.type === "compound" ? childrenByHabit[habit.id] || [] : undefined,
   }));
-}
-
-async function pushLocalHabitsToSupabase() {
-  const habitIdMap = {};
-  const childIdMap = {};
-  const nextHabits = [];
-
-  for (const [index, habit] of state.habits.entries()) {
-    const remoteHabit = await createHabitInSupabase(habit, index, false);
-    if (!remoteHabit) return false;
-    habitIdMap[habit.id] = remoteHabit.id;
-    (habit.children || []).forEach((child, childIndex) => {
-      childIdMap[`${habit.id}:${child.id}`] = remoteHabit.children?.[childIndex]?.id;
-    });
-    nextHabits.push(remoteHabit);
-  }
-
-  state.coreHabitIds = (state.coreHabitIds || []).map((id) => habitIdMap[id]).filter(Boolean);
-  state.habits = nextHabits;
-  remapCheckIds(habitIdMap, childIdMap);
-  saveState();
-  render();
-  return true;
 }
 
 async function createHabitInSupabase(habit, sortOrder = state.habits.indexOf(habit), replaceLocal = true) {
@@ -1209,14 +1138,14 @@ async function syncJournalWithSupabase() {
 
   if (remoteVictories.length) {
     state.victories = remoteVictories;
-  } else if (state.victories.length) {
-    await pushLocalVictoriesToSupabase();
+  } else {
+    state.victories = [];
   }
 
   if (remoteShadows.length) {
     state.shadows = remoteShadows;
-  } else if (state.shadows.length) {
-    await pushLocalShadowsToSupabase();
+  } else {
+    state.shadows = [];
   }
 
   hasSyncedJournal = true;
@@ -1274,28 +1203,6 @@ async function loadShadowsFromSupabase() {
     tags: entry.tags || [],
     convertedVictoryId: entry.converted_victory_id || null,
   }));
-}
-
-async function pushLocalVictoriesToSupabase() {
-  const nextVictories = [];
-  for (const victory of state.victories) {
-    const remoteVictory = await createVictoryInSupabase(victory, false);
-    if (!remoteVictory) return false;
-    nextVictories.push(remoteVictory);
-  }
-  state.victories = nextVictories;
-  return true;
-}
-
-async function pushLocalShadowsToSupabase() {
-  const nextShadows = [];
-  for (const shadow of state.shadows) {
-    const remoteShadow = await createShadowInSupabase(shadow, false);
-    if (!remoteShadow) return false;
-    nextShadows.push(remoteShadow);
-  }
-  state.shadows = nextShadows;
-  return true;
 }
 
 async function createVictoryInSupabase(victory, replaceLocal = true) {
