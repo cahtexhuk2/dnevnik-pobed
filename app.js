@@ -25,12 +25,59 @@ const categories = [
 
 const JOURNEY_START_DATE = "2026-05-26";
 const CORE_HABIT_IDS = [];
+const starterHabits = [
+  {
+    id: "wake-up",
+    name: "Подъем сразу с будильником",
+    type: "simple",
+    challenge: 90,
+    color: "green",
+  },
+  {
+    id: "padmasadana",
+    name: "Подмасадана",
+    type: "compound",
+    challenge: 90,
+    color: "green",
+    children: [
+      { id: "asanas", name: "Асаны" },
+      { id: "pranayama-3", name: "Пранаяма 3х стадийная" },
+      { id: "bhastrika", name: "Бхастрика" },
+      { id: "kriya", name: "Крия малая" },
+      { id: "bogar", name: "Богар пранаяма" },
+      { id: "sahaj", name: "Медитация Сахадж Самадхи" },
+      { id: "nadi-shodhana", name: "Нади Шодхана пранаяма" },
+    ],
+  },
+  {
+    id: "vocal",
+    name: "Вокал",
+    type: "simple",
+    challenge: 90,
+    color: "green",
+  },
+  {
+    id: "breakfast",
+    name: "Завтрак",
+    type: "simple",
+    challenge: 90,
+    color: "green",
+  },
+  {
+    id: "vegetarian",
+    name: "Вегетарианство",
+    type: "simple",
+    challenge: 90,
+    color: "green",
+  },
+];
 
 const initialState = {
   activeTab: "today",
   activeDate: toDateInput(new Date()),
   victoryFilter: "Все",
   collapsedHabits: {},
+  onboardingDismissed: false,
   journeyStartDate: JOURNEY_START_DATE,
   coreHabitIds: CORE_HABIT_IDS,
   authMode: "login",
@@ -87,6 +134,8 @@ const els = {
   accountName: document.querySelector("#account-name"),
   accountMode: document.querySelector("#account-mode"),
   accountAvatar: document.querySelector("#account-avatar"),
+  onboardingPanel: document.querySelector("#onboarding-panel"),
+  onboardingSteps: document.querySelector("#onboarding-steps"),
   connectionStatus: document.querySelector("#connection-status"),
   authForm: document.querySelector("#auth-form"),
   authNameField: document.querySelector(".auth-name-field"),
@@ -166,11 +215,102 @@ function boot() {
 
 function render() {
   renderAccount();
+  renderOnboarding();
   renderToday();
   renderVictories();
   renderProgress();
   renderShadow();
   renderProfile();
+}
+
+function renderOnboarding() {
+  if (!els.onboardingPanel) return;
+
+  const hasProfile = Boolean(state.profile?.displayName || state.profile?.city || state.profile?.bio);
+  const hasHabit = state.habits.length > 0;
+  const hasVictory = state.victories.length > 0;
+  const hasStarted = hasProfile && hasHabit && hasVictory;
+  const shouldShow = !state.onboardingDismissed && !hasStarted;
+
+  els.onboardingPanel.hidden = !shouldShow;
+  if (!shouldShow) return;
+
+  const steps = [
+    { done: hasProfile, title: "Профиль", text: "Имя, город, цель и старт пути", action: "profile" },
+    { done: hasHabit, title: "Привычки", text: "Одна простая или составная привычка", action: "habit" },
+    { done: hasVictory, title: "Победа", text: "Первая запись на стене побед", action: "victory" },
+  ];
+
+  els.onboardingSteps.innerHTML = steps.map((step, index) => `
+    <button class="onboarding-step ${step.done ? "done" : ""}" data-onboarding-action="${step.action}" type="button">
+      <span class="step-number">${step.done ? "✓" : index + 1}</span>
+      <span>
+        <strong>${escapeHtml(step.title)}</strong>
+        <small>${escapeHtml(step.text)}</small>
+      </span>
+    </button>
+  `).join("");
+
+  els.onboardingPanel.querySelectorAll("[data-onboarding-action]").forEach((button) => {
+    button.onclick = () => handleOnboardingAction(button.dataset.onboardingAction);
+  });
+}
+
+async function handleOnboardingAction(action) {
+  if (action === "profile") {
+    switchTab("profile");
+    return;
+  }
+  if (action === "habit") {
+    switchTab("add");
+    switchForm("habit");
+    document.querySelector("#habit-name").focus();
+    return;
+  }
+  if (action === "victory") {
+    switchTab("add");
+    switchForm("victory");
+    document.querySelector("#victory-text").focus();
+    return;
+  }
+  if (action === "template") {
+    await installStarterTemplate();
+    return;
+  }
+  if (action === "dismiss") {
+    state.onboardingDismissed = true;
+    saveAndRender();
+  }
+}
+
+async function installStarterTemplate() {
+  if (state.habits.length && !confirm("Добавить шаблон к уже созданным привычкам?")) {
+    return;
+  }
+
+  const createdHabits = starterHabits.map((habit) => ({
+    ...habit,
+    id: uniqueHabitId(habit.name),
+    children: habit.children?.map((child, index) => ({
+      ...child,
+      id: uniqueChildId(child.name, index),
+    })),
+  }));
+
+  state.habits.push(...createdHabits);
+  state.coreHabitIds = [
+    ...(state.coreHabitIds || []),
+    ...createdHabits.map((habit) => habit.id),
+  ];
+  saveAndRender();
+
+  if (supabaseClient && supabaseUser) {
+    for (const habit of createdHabits) {
+      await createHabitInSupabase(habit, state.habits.indexOf(habit));
+    }
+  }
+
+  toast("Шаблон привычек добавлен.");
 }
 
 function renderAccount() {

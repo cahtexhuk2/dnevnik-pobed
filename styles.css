@@ -145,6 +145,92 @@ button {
   box-shadow: 0 12px 30px rgba(23, 35, 30, 0.06);
 }
 
+.onboarding-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.4fr);
+  gap: 14px;
+  margin-bottom: 22px;
+  padding: 16px;
+  border: 1px solid #c7d7ce;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--shadow);
+}
+
+.onboarding-panel[hidden] {
+  display: none;
+}
+
+.onboarding-copy h2 {
+  margin-bottom: 8px;
+}
+
+.onboarding-copy p:last-child {
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.onboarding-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.onboarding-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fbfcfb;
+  color: var(--ink);
+  padding: 10px;
+  text-align: left;
+}
+
+.onboarding-step.done {
+  border-color: #9fc9ad;
+  background: var(--green-soft);
+}
+
+.step-number {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 900;
+  flex: 0 0 auto;
+}
+
+.onboarding-step.done .step-number {
+  background: var(--green);
+}
+
+.onboarding-step strong,
+.onboarding-step small {
+  display: block;
+}
+
+.onboarding-step small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.onboarding-actions {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .account-identity {
   display: flex;
   align-items: center;
@@ -1123,10 +1209,19 @@ button.day-cell {
   .victory-grid,
   .progress-layout,
   .calendar-wrap,
+  .onboarding-panel,
   .shadow-grid,
   .profile-layout,
   .field-grid {
     grid-template-columns: 1fr;
+  }
+
+  .onboarding-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .onboarding-actions {
+    grid-column: auto;
   }
 
   .summary-strip {
