@@ -256,7 +256,9 @@ function renderAuthGate() {
   els.gateAuthNameField.hidden = state.authMode !== "register";
   els.gateAuthEmail.value = state.localAccount?.isSignedIn ? state.localAccount?.email || "" : els.gateAuthEmail.value;
   els.gateAuthPassword.value = "";
-  els.gateAuthName.value = state.profile?.displayName || "";
+  if (state.authMode !== "register") {
+    els.gateAuthName.value = "";
+  }
   els.gateAuthSubmit.textContent = state.authMode === "register" ? "Зарегистрироваться" : "Войти";
 }
 
@@ -705,7 +707,9 @@ function renderProfile() {
     : state.authMode === "register" ? "Создать локальный профиль" : "Войти локально";
   els.authEmail.value = state.localAccount?.email || "";
   els.authPassword.value = "";
-  els.authName.value = profile.displayName || "";
+  if (state.authMode !== "register") {
+    els.authName.value = "";
+  }
 
   els.profileDisplayName.value = profile.displayName || "";
   els.profileBirthYear.value = profile.birthYear || "";
