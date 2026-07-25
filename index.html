@@ -9,7 +9,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="assets/favicon-512.png" />
     <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
-    <link rel="stylesheet" href="styles.css?v=20260725-3" />
+    <link rel="stylesheet" href="styles.css?v=20260725-4" />
   </head>
   <body>
     <section class="auth-gate" id="auth-gate" hidden>
@@ -63,11 +63,11 @@
             <span>личная система роста</span>
           </div>
         </div>
-        <button class="nav-item active" data-tab="today" type="button">
-          <span class="icon">✓</span><span>Сегодня</span>
-        </button>
-        <button class="nav-item" data-tab="victories" type="button">
+        <button class="nav-item active" data-tab="victories" type="button">
           <span class="icon">▣</span><span>Победы</span>
+        </button>
+        <button class="nav-item" data-tab="today" type="button">
+          <span class="icon">✓</span><span>Сегодня</span>
         </button>
         <button class="nav-item add-accent" data-tab="add" type="button">
           <span class="icon">+</span><span>Добавить</span>
@@ -95,7 +95,7 @@
           <button class="ghost-action" data-tab-jump="profile" type="button">Профиль</button>
         </div>
 
-        <section class="screen active" id="today-screen" data-screen="today">
+        <section class="screen" id="today-screen" data-screen="today">
           <header class="screen-header">
             <div>
               <p class="eyebrow" id="today-weekday">Сегодня</p>
@@ -110,7 +110,7 @@
           <div class="habit-list" id="habit-list"></div>
         </section>
 
-        <section class="screen" id="victories-screen" data-screen="victories">
+        <section class="screen active" id="victories-screen" data-screen="victories">
           <header class="screen-header">
             <div>
               <p class="eyebrow">Стена</p>
@@ -118,6 +118,10 @@
             </div>
             <button class="primary-action" data-tab-jump="add" type="button">+ победа</button>
           </header>
+          <div class="view-switch" aria-label="Вид побед">
+            <button class="view-option active" data-victory-view="tile" type="button">Плитка</button>
+            <button class="view-option" data-victory-view="list" type="button">Список</button>
+          </div>
           <div class="filters" id="victory-filters"></div>
           <div class="victory-grid" id="victory-grid"></div>
         </section>
@@ -347,8 +351,8 @@
       </main>
 
       <nav class="bottom-nav" aria-label="Разделы">
-        <button class="nav-item active" data-tab="today" type="button"><span class="icon">✓</span><span>Сегодня</span></button>
-        <button class="nav-item" data-tab="victories" type="button"><span class="icon">▣</span><span>Победы</span></button>
+        <button class="nav-item active" data-tab="victories" type="button"><span class="icon">▣</span><span>Победы</span></button>
+        <button class="nav-item" data-tab="today" type="button"><span class="icon">✓</span><span>Сегодня</span></button>
         <button class="nav-item add-accent" data-tab="add" type="button"><span class="icon">+</span><span>Добавить</span></button>
         <button class="nav-item" data-tab="progress" type="button"><span class="icon">↗</span><span>Прогресс</span></button>
         <button class="nav-item" data-tab="shadow" type="button"><span class="icon">◐</span><span>Тень</span></button>
@@ -373,8 +377,11 @@
       <button class="lightbox-close" id="lightbox-close" type="button" aria-label="Закрыть">×</button>
       <img id="lightbox-image" src="" alt="">
     </div>
+    <div class="victory-detail-modal" id="victory-detail-modal" hidden role="dialog" aria-modal="true" aria-label="Победа">
+      <div class="victory-detail-dialog" id="victory-detail-dialog"></div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js?v=20260725-3"></script>
-    <script src="app.js?v=20260725-3"></script>
+    <script src="config.js?v=20260725-4"></script>
+    <script src="app.js?v=20260725-4"></script>
   </body>
 </html>

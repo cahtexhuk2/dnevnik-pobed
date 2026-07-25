@@ -98,9 +98,10 @@ const starterHabits = [
 ];
 
 const initialState = {
-  activeTab: "today",
+  activeTab: "victories",
   activeDate: toDateInput(new Date()),
   victoryFilter: "Все",
+  victoryView: "tile",
   collapsedHabits: {},
   onboardingDismissed: false,
   onboardingPromptSeen: false,
@@ -153,6 +154,8 @@ const els = {
   habitList: document.querySelector("#habit-list"),
   victoryGrid: document.querySelector("#victory-grid"),
   victoryFilters: document.querySelector("#victory-filters"),
+  victoryDetailModal: document.querySelector("#victory-detail-modal"),
+  victoryDetailDialog: document.querySelector("#victory-detail-dialog"),
   progressCalendar: document.querySelector("#progress-calendar"),
   calendarTotal: document.querySelector("#calendar-total"),
   streakList: document.querySelector("#streak-list"),
@@ -233,6 +236,10 @@ function boot() {
     button.addEventListener("click", () => switchAuthMode(button.dataset.gateAuthMode));
   });
 
+  document.querySelectorAll("[data-victory-view]").forEach((button) => {
+    button.addEventListener("click", () => switchVictoryView(button.dataset.victoryView));
+  });
+
   els.activeDate.value = state.activeDate;
   els.activeDate.addEventListener("change", (event) => {
     state.activeDate = event.target.value;
@@ -251,8 +258,12 @@ function boot() {
   els.imageLightbox.addEventListener("click", (event) => {
     if (event.target === els.imageLightbox) closeImageLightbox();
   });
+  els.victoryDetailModal.addEventListener("click", (event) => {
+    if (event.target === els.victoryDetailModal) closeVictoryDetail();
+  });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !els.imageLightbox.hidden) closeImageLightbox();
+    if (event.key === "Escape" && !els.victoryDetailModal.hidden) closeVictoryDetail();
   });
   els.habitCompound.addEventListener("change", renderHabitChildBuilder);
   els.habitChildAdd.addEventListener("click", addDraftHabitChild);
@@ -275,7 +286,8 @@ function boot() {
   els.exportData.addEventListener("click", exportLocalData);
   els.authSignOut.addEventListener("click", handleSignOut);
 
-  switchTab(state.activeTab || "today", false);
+  state.activeTab = "victories";
+  switchTab("victories", false);
   switchAuthMode(state.authMode || "login", false);
   render();
   initializeSupabaseAuth();
@@ -553,6 +565,10 @@ function renderChild(habitId, child, date) {
 }
 
 function renderVictories() {
+  document.querySelectorAll("[data-victory-view]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.victoryView === getVictoryView());
+  });
+
   const tagFilters = getKnownVictoryTags();
   const filters = [
     { label: "Все", value: "Все" },
@@ -575,11 +591,17 @@ function renderVictories() {
     .sort((a, b) => b.date.localeCompare(a.date));
 
   if (!victories.length) {
+    els.victoryGrid.className = "victory-grid";
     els.victoryGrid.innerHTML = `<div class="empty-state">Пока здесь пусто. Добавь первую победу с фото или текстом.</div>`;
     return;
   }
 
-  els.victoryGrid.innerHTML = victories.map(renderVictoryCard).join("");
+  const view = getVictoryView();
+  els.victoryGrid.className = `victory-grid ${view}-view`;
+  els.victoryGrid.innerHTML = victories.map((victory) => renderVictoryCard(victory, view)).join("");
+  els.victoryGrid.querySelectorAll("[data-open-victory]").forEach((button) => {
+    button.addEventListener("click", () => openVictoryDetail(button.dataset.openVictory));
+  });
   els.victoryGrid.querySelectorAll("[data-edit-victory]").forEach((button) => {
     button.addEventListener("click", () => editVictory(button.dataset.editVictory));
   });
@@ -591,11 +613,27 @@ function renderVictories() {
   });
 }
 
-function renderVictoryCard(victory) {
+function renderVictoryCard(victory, view = getVictoryView()) {
   const media = victory.image
     ? `<button class="victory-image-button" data-view-victory-image="${escapeHtml(victory.image)}" type="button" aria-label="Открыть фото победы"><img src="${escapeHtml(victory.image)}" alt=""></button>`
     : `<span>${escapeHtml(victory.category)}</span>`;
   const tags = [victory.role, ...(victory.tags || [])].filter(Boolean);
+
+  if (view === "tile") {
+    const title = victory.text.length > 58 ? `${victory.text.slice(0, 58)}...` : victory.text;
+    const tileMedia = victory.image
+      ? `<img src="${escapeHtml(victory.image)}" alt="">`
+      : `<span>${escapeHtml(victory.category)}</span>`;
+    return `
+      <button class="victory-card victory-tile" data-open-victory="${victory.id}" type="button">
+        <span class="victory-media">${tileMedia}</span>
+        <span class="victory-body">
+          <span class="victory-date">${formatDate(victory.date)} · ${escapeHtml(victory.category)}</span>
+          <strong>${escapeHtml(title)}</strong>
+        </span>
+      </button>
+    `;
+  }
 
   return `
     <article class="victory-card">
@@ -618,6 +656,15 @@ function getVictoryFilterValue() {
   if (state.victoryFilter.startsWith("category:") || state.victoryFilter.startsWith("tag:")) return state.victoryFilter;
   if (state.categories.includes(state.victoryFilter)) return `category:${state.victoryFilter}`;
   return state.victoryFilter;
+}
+
+function getVictoryView() {
+  return state.victoryView === "list" ? "list" : "tile";
+}
+
+function switchVictoryView(view) {
+  state.victoryView = view === "list" ? "list" : "tile";
+  saveAndRender();
 }
 
 function matchesVictoryFilter(victory) {
@@ -682,6 +729,55 @@ function applyVictoryAward(awardId) {
   els.imagePreview.innerHTML = `<img src="${escapeHtml(award.image)}" alt="${escapeHtml(award.title)}">`;
   setVictoryTagsInput([...getVictoryTagsInput(), ...award.tags]);
   toast(`Награда "${award.title}" добавлена.`);
+}
+
+function openVictoryDetail(id) {
+  const victory = state.victories.find((item) => item.id === id);
+  if (!victory) return;
+
+  const tags = [victory.role, ...(victory.tags || [])].filter(Boolean);
+  const media = victory.image
+    ? `<button class="detail-media-button" data-view-victory-image="${escapeHtml(victory.image)}" type="button" aria-label="Открыть фото"><img src="${escapeHtml(victory.image)}" alt=""></button>`
+    : `<div class="detail-media-placeholder">${escapeHtml(victory.category)}</div>`;
+
+  els.victoryDetailDialog.innerHTML = `
+    <button class="detail-close" data-close-victory-detail type="button" aria-label="Закрыть">×</button>
+    <div class="victory-detail-media">${media}</div>
+    <div class="victory-detail-body">
+      <div class="victory-date">${formatDate(victory.date)} · ${escapeHtml(victory.category)}</div>
+      <h2>${escapeHtml(victory.text)}</h2>
+      <div class="tag-row">${tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div>
+      <div class="card-actions">
+        <button class="ghost-action" data-edit-victory="${victory.id}" type="button">Редактировать</button>
+        <button class="danger-action" data-delete-victory="${victory.id}" type="button">Удалить</button>
+      </div>
+    </div>
+  `;
+
+  els.victoryDetailModal.hidden = false;
+  document.body.classList.add("modal-open");
+  els.victoryDetailDialog.querySelector("[data-close-victory-detail]").addEventListener("click", closeVictoryDetail);
+  els.victoryDetailDialog.querySelectorAll("[data-view-victory-image]").forEach((button) => {
+    button.addEventListener("click", () => openImageLightbox(button.dataset.viewVictoryImage));
+  });
+  els.victoryDetailDialog.querySelectorAll("[data-edit-victory]").forEach((button) => {
+    button.addEventListener("click", () => {
+      closeVictoryDetail();
+      editVictory(button.dataset.editVictory);
+    });
+  });
+  els.victoryDetailDialog.querySelectorAll("[data-delete-victory]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const deleted = await deleteVictory(button.dataset.deleteVictory);
+      if (deleted) closeVictoryDetail();
+    });
+  });
+}
+
+function closeVictoryDetail() {
+  els.victoryDetailModal.hidden = true;
+  els.victoryDetailDialog.innerHTML = "";
+  document.body.classList.remove("modal-open");
 }
 
 function renderProgress() {
@@ -2192,7 +2288,7 @@ async function deleteShadow(id) {
 }
 
 async function deleteVictory(id) {
-  if (!confirm("Вы уверены, что хотите удалить эту победу?")) return;
+  if (!confirm("Вы уверены, что хотите удалить эту победу?")) return false;
   if (supabaseClient && supabaseUser) {
     const { error } = await supabaseClient
       .from("victories")
@@ -2201,12 +2297,13 @@ async function deleteVictory(id) {
       .eq("user_id", supabaseUser.id);
     if (error) {
       toast(error.message);
-      return;
+      return false;
     }
   }
   state.victories = state.victories.filter((victory) => victory.id !== id);
   saveAndRender();
   toast("Победа удалена.");
+  return true;
 }
 
 async function deleteHabit(id) {
@@ -2260,6 +2357,7 @@ function migrateState(loaded) {
   loaded.coreHabitIds = loaded.coreHabitIds || CORE_HABIT_IDS;
   loaded.checks = loaded.checks || {};
   loaded.authMode = loaded.authMode || "login";
+  loaded.victoryView = loaded.victoryView === "list" ? "list" : "tile";
   loaded.onboardingPromptSeen = Boolean(loaded.onboardingPromptSeen);
   loaded.onboardingDismissed = Boolean(loaded.onboardingDismissed);
   loaded.localAccount = {
