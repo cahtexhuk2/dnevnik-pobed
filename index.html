@@ -166,7 +166,10 @@
                 <input id="victory-tags" type="text" placeholder="вокал, дисциплина" />
               </label>
             </div>
-            <button class="primary-action wide" type="submit">Сохранить победу</button>
+            <div class="form-actions">
+              <button class="primary-action wide" id="victory-submit" type="submit">Сохранить победу</button>
+              <button class="ghost-action" id="victory-edit-cancel" type="button" hidden>Отменить</button>
+            </div>
           </form>
 
           <form class="panel form-panel" id="shadow-form" data-form-panel="shadow">
@@ -358,6 +361,10 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="image-lightbox" id="image-lightbox" hidden role="dialog" aria-modal="true" aria-label="Просмотр фото победы">
+      <button class="lightbox-close" id="lightbox-close" type="button" aria-label="Закрыть">×</button>
+      <img id="lightbox-image" src="" alt="">
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="app.js"></script>

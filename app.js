@@ -105,6 +105,7 @@ const initialState = {
 
 let state = loadState();
 let pendingImage = null;
+let editingVictoryId = null;
 let draftHabitChildren = [];
 let supabaseClient = null;
 let supabaseUser = null;
@@ -134,6 +135,8 @@ const els = {
   shadowList: document.querySelector("#shadow-list"),
   toast: document.querySelector("#toast"),
   victoryForm: document.querySelector("#victory-form"),
+  victorySubmit: document.querySelector("#victory-submit"),
+  victoryEditCancel: document.querySelector("#victory-edit-cancel"),
   shadowForm: document.querySelector("#shadow-form"),
   habitForm: document.querySelector("#habit-form"),
   imagePreview: document.querySelector("#image-preview"),
@@ -170,6 +173,9 @@ const els = {
   startOnboarding: document.querySelector("#start-onboarding"),
   exportData: document.querySelector("#export-data"),
   authSignOut: document.querySelector("#auth-sign-out"),
+  imageLightbox: document.querySelector("#image-lightbox"),
+  lightboxImage: document.querySelector("#lightbox-image"),
+  lightboxClose: document.querySelector("#lightbox-close"),
 };
 
 boot();
@@ -211,6 +217,14 @@ function boot() {
   document.querySelector("#victory-date").value = state.activeDate;
 
   document.querySelector("#victory-image").addEventListener("change", handleImageUpload);
+  els.victoryEditCancel.addEventListener("click", resetVictoryForm);
+  els.lightboxClose.addEventListener("click", closeImageLightbox);
+  els.imageLightbox.addEventListener("click", (event) => {
+    if (event.target === els.imageLightbox) closeImageLightbox();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !els.imageLightbox.hidden) closeImageLightbox();
+  });
   els.habitCompound.addEventListener("change", renderHabitChildBuilder);
   els.habitChildAdd.addEventListener("click", addDraftHabitChild);
   els.habitChildInput.addEventListener("keydown", (event) => {
@@ -532,14 +546,20 @@ function renderVictories() {
   }
 
   els.victoryGrid.innerHTML = victories.map(renderVictoryCard).join("");
+  els.victoryGrid.querySelectorAll("[data-edit-victory]").forEach((button) => {
+    button.addEventListener("click", () => editVictory(button.dataset.editVictory));
+  });
   els.victoryGrid.querySelectorAll("[data-delete-victory]").forEach((button) => {
     button.addEventListener("click", () => deleteVictory(button.dataset.deleteVictory));
+  });
+  els.victoryGrid.querySelectorAll("[data-view-victory-image]").forEach((button) => {
+    button.addEventListener("click", () => openImageLightbox(button.dataset.viewVictoryImage));
   });
 }
 
 function renderVictoryCard(victory) {
   const media = victory.image
-    ? `<img src="${victory.image}" alt="">`
+    ? `<button class="victory-image-button" data-view-victory-image="${escapeHtml(victory.image)}" type="button" aria-label="Открыть фото победы"><img src="${escapeHtml(victory.image)}" alt=""></button>`
     : `<span>${escapeHtml(victory.category)}</span>`;
   const tags = [victory.role, ...(victory.tags || [])].filter(Boolean);
 
@@ -551,6 +571,7 @@ function renderVictoryCard(victory) {
         <p>${escapeHtml(victory.text)}</p>
         <div class="tag-row">${tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div>
         <div class="card-actions">
+          <button class="ghost-action" data-edit-victory="${victory.id}" type="button">Редактировать</button>
           <button class="danger-action" data-delete-victory="${victory.id}" type="button">Удалить</button>
         </div>
       </div>
@@ -741,6 +762,41 @@ async function handleVictorySubmit(event) {
     image = pendingImage.preview;
   }
 
+  if (editingVictoryId) {
+    const existing = state.victories.find((item) => item.id === editingVictoryId);
+    if (!existing) {
+      resetVictoryForm();
+      toast("Победа не найдена.");
+      return;
+    }
+
+    const updatedVictory = {
+      ...existing,
+      date: document.querySelector("#victory-date").value || state.activeDate,
+      text,
+      category: document.querySelector("#victory-category").value,
+      role: document.querySelector("#victory-role").value,
+      tags: parseTags(document.querySelector("#victory-tags").value),
+      image: image || existing.image || null,
+    };
+
+    if (supabaseClient && supabaseUser) {
+      const remoteVictory = await updateVictoryInSupabase(updatedVictory);
+      if (!remoteVictory) return;
+      const index = state.victories.findIndex((item) => item.id === editingVictoryId);
+      state.victories[index] = remoteVictory;
+    } else {
+      const index = state.victories.findIndex((item) => item.id === editingVictoryId);
+      state.victories[index] = updatedVictory;
+    }
+
+    resetVictoryForm();
+    saveAndRender();
+    switchTab("victories");
+    toast("Победа обновлена.");
+    return;
+  }
+
   const victory = {
     id: uid(),
     date: document.querySelector("#victory-date").value || state.activeDate,
@@ -757,13 +813,55 @@ async function handleVictorySubmit(event) {
     await createVictoryInSupabase(victory);
   }
 
+  resetVictoryForm();
+  saveAndRender();
+  switchTab("victories");
+  toast("Победа сохранена.");
+}
+
+function editVictory(id) {
+  const victory = state.victories.find((item) => item.id === id);
+  if (!victory) return;
+
+  editingVictoryId = id;
+  pendingImage = null;
+  switchTab("add");
+  switchForm("victory");
+
+  document.querySelector("#victory-text").value = victory.text || "";
+  document.querySelector("#victory-date").value = victory.date || state.activeDate;
+  document.querySelector("#victory-category").value = victory.category || state.categories[0];
+  document.querySelector("#victory-role").value = victory.role || state.roles[0];
+  document.querySelector("#victory-tags").value = (victory.tags || []).join(", ");
+  els.imagePreview.innerHTML = victory.image
+    ? `<img src="${escapeHtml(victory.image)}" alt="">`
+    : "Фото появится здесь";
+  els.victorySubmit.textContent = "Сохранить изменения";
+  els.victoryEditCancel.hidden = false;
+  document.querySelector("#victory-text").focus();
+}
+
+function resetVictoryForm() {
+  editingVictoryId = null;
   pendingImage = null;
   els.victoryForm.reset();
   document.querySelector("#victory-date").value = state.activeDate;
   els.imagePreview.textContent = "Фото появится здесь";
-  saveAndRender();
-  switchTab("victories");
-  toast("Победа сохранена.");
+  els.victorySubmit.textContent = "Сохранить победу";
+  els.victoryEditCancel.hidden = true;
+}
+
+function openImageLightbox(imageUrl) {
+  if (!imageUrl) return;
+  els.lightboxImage.src = imageUrl;
+  els.imageLightbox.hidden = false;
+  document.body.classList.add("lightbox-open");
+}
+
+function closeImageLightbox() {
+  els.imageLightbox.hidden = true;
+  els.lightboxImage.src = "";
+  document.body.classList.remove("lightbox-open");
 }
 
 async function handleShadowSubmit(event) {
@@ -1540,6 +1638,44 @@ async function createVictoryInSupabase(victory, replaceLocal = true) {
   }
 
   return remoteVictory;
+}
+
+async function updateVictoryInSupabase(victory) {
+  if (!supabaseClient || !supabaseUser) return victory;
+
+  const payload = {
+    victory_date: victory.date || state.activeDate,
+    text: victory.text,
+    category: victory.category || null,
+    role: victory.role || null,
+    tags: victory.tags || [],
+    image_url: victory.image?.startsWith("http") ? victory.image : null,
+    source: victory.source || "manual",
+  };
+
+  const { data, error } = await supabaseClient
+    .from("victories")
+    .update(payload)
+    .eq("id", victory.id)
+    .eq("user_id", supabaseUser.id)
+    .select("id, victory_date, text, category, role, tags, image_url, source")
+    .single();
+
+  if (error) {
+    toast(error.message);
+    return null;
+  }
+
+  return {
+    id: data.id,
+    date: data.victory_date,
+    text: data.text,
+    category: data.category || "Дисциплина",
+    role: data.role || "",
+    tags: data.tags || [],
+    image: data.image_url || victory.image || null,
+    source: data.source || "manual",
+  };
 }
 
 async function uploadMediaFile(file, folder) {
