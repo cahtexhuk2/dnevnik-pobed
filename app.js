@@ -1039,7 +1039,7 @@ async function handleSupabaseAuth(email, password, displayName = "") {
     });
 
     if (error) {
-      toast(error.message);
+      toast(friendlyAuthError(error.message));
       return;
     }
 
@@ -1054,14 +1054,14 @@ async function handleSupabaseAuth(email, password, displayName = "") {
     } else {
       state.localAccount = { email, isSignedIn: false };
       saveAndRender();
-      toast("Регистрация создана. Если Supabase попросит, подтверди email.");
+      toast("Аккаунт создан, но Supabase пока требует подтверждение email. Сейчас отключаем это в настройках.");
     }
     return;
   }
 
   const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
   if (error) {
-    toast(error.message);
+    toast(friendlyAuthError(error.message));
     return;
   }
   await applySupabaseSession(data.session);
@@ -2082,6 +2082,26 @@ function inferShadowTags(text) {
   if (lower.includes("разговор") || lower.includes("диалог")) tags.push("диалог");
   if (lower.includes("оправд")) tags.push("оправдание");
   return tags.length ? tags : ["осознанность"];
+}
+
+function friendlyAuthError(message = "") {
+  const lower = message.toLowerCase();
+  if (lower.includes("email rate limit")) {
+    return "Supabase уперся в лимит писем. Для теста отключаем подтверждение email.";
+  }
+  if (lower.includes("invalid login credentials")) {
+    return "Неверный email или пароль.";
+  }
+  if (lower.includes("email not confirmed")) {
+    return "Email не подтвержден. Для тестового режима отключаем подтверждение email.";
+  }
+  if (lower.includes("user already registered") || lower.includes("already")) {
+    return "Такой email уже зарегистрирован. Попробуй войти.";
+  }
+  if (lower.includes("password")) {
+    return "Проверь пароль: минимум 6 символов.";
+  }
+  return message || "Не получилось выполнить вход или регистрацию.";
 }
 
 function formatDate(date) {
