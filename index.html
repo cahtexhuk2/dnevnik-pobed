@@ -9,7 +9,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="assets/favicon-512.png" />
     <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
-    <link rel="stylesheet" href="styles.css?v=20260725-2" />
+    <link rel="stylesheet" href="styles.css?v=20260725-3" />
   </head>
   <body>
     <section class="auth-gate" id="auth-gate" hidden>
@@ -142,6 +142,10 @@
               <input id="victory-image" type="file" accept="image/*" />
             </label>
             <div class="image-preview" id="image-preview">Фото появится здесь</div>
+            <div class="award-picker">
+              <span>Награды</span>
+              <div class="quick-chip-row" id="victory-awards"></div>
+            </div>
             <label class="field">
               <span>Текст победы</span>
               <textarea id="victory-text" rows="4" placeholder="Например: Я сделал 103 дня подряд вокал без остановки"></textarea>
@@ -165,6 +169,10 @@
                 <span>Теги</span>
                 <input id="victory-tags" type="text" placeholder="вокал, дисциплина" />
               </label>
+            </div>
+            <div class="tag-picker">
+              <span>Быстрые теги</span>
+              <div class="quick-chip-row" id="victory-tag-suggestions"></div>
             </div>
             <div class="form-actions">
               <button class="primary-action wide" id="victory-submit" type="submit">Сохранить победу</button>
@@ -366,7 +374,7 @@
       <img id="lightbox-image" src="" alt="">
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js?v=20260725-2"></script>
-    <script src="app.js?v=20260725-2"></script>
+    <script src="config.js?v=20260725-3"></script>
+    <script src="app.js?v=20260725-3"></script>
   </body>
 </html>

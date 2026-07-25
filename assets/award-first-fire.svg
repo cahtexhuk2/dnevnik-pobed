@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Первый огонь</title>
+  <desc id="desc">Золотая награда Дневника Побед за 7 дней подряд</desc>
+  <defs>
+    <radialGradient id="sky" cx="50%" cy="38%" r="58%">
+      <stop offset="0%" stop-color="#f7d36a"/>
+      <stop offset="28%" stop-color="#8d5b24"/>
+      <stop offset="62%" stop-color="#17231f"/>
+      <stop offset="100%" stop-color="#07110f"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff2a8"/>
+      <stop offset="28%" stop-color="#d39a2c"/>
+      <stop offset="60%" stop-color="#8b541e"/>
+      <stop offset="100%" stop-color="#f4d06a"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="20" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 1 0 0.68 0 0 0.42 0 0 0.18 0 0 0 0 0 .85 0"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="900" fill="#08110f"/>
+  <circle cx="600" cy="405" r="360" fill="url(#sky)"/>
+  <circle cx="600" cy="405" r="382" fill="none" stroke="url(#gold)" stroke-width="22"/>
+  <circle cx="600" cy="405" r="414" fill="none" stroke="#b77927" stroke-width="6" opacity=".75"/>
+
+  <g opacity=".5" stroke="#d7a23b" stroke-width="4" fill="none">
+    <path d="M170 405c180-120 300-165 430-165s250 45 430 165"/>
+    <path d="M160 520c160 90 300 135 440 135s280-45 440-135"/>
+  </g>
+
+  <g filter="url(#glow)">
+    <path d="M600 120c58 95 35 142 0 191-37 52-48 98 0 154 48-56 37-102 0-154-35-49-58-96 0-191z" fill="#f5c84b"/>
+    <path d="M600 224c34 61 13 91-10 120-28 35-24 75 10 112 34-37 38-77 10-112-23-29-44-59-10-120z" fill="#fff1a8" opacity=".9"/>
+  </g>
+
+  <g>
+    <path d="M210 575 385 330l96 140 82-115 154 220z" fill="#1a2a25"/>
+    <path d="M385 330 481 470l-90-35-92 140H210z" fill="#30473f"/>
+    <path d="M563 355 717 575H485z" fill="#263a34"/>
+    <path d="M353 377 385 330l38 56-42-14zM542 384l21-29 35 51-35-13z" fill="#f6e6bc"/>
+  </g>
+
+  <text x="600" y="670" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="96" font-weight="900" fill="url(#gold)" stroke="#3b220d" stroke-width="3">ПЕРВЫЙ</text>
+  <text x="600" y="764" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="90" font-weight="900" fill="url(#gold)" stroke="#3b220d" stroke-width="3">ОГОНЬ</text>
+  <text x="600" y="826" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="800" fill="#f8e7a4">7 ДНЕЙ ПОДРЯД</text>
+</svg>

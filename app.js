@@ -23,6 +23,31 @@ const categories = [
   "Тень исправлена",
 ];
 
+const quickVictoryTags = [
+  "подъем",
+  "подмасадана",
+  "вокал",
+  "тело",
+  "спорт",
+  "питание",
+  "дисциплина",
+  "бизнес",
+  "деньги",
+  "отношения",
+  "смелость",
+  "первый огонь",
+];
+
+const awards = [
+  {
+    id: "first-fire",
+    title: "Первый огонь",
+    milestone: "7 дней подряд",
+    image: "assets/award-first-fire.svg",
+    tags: ["первый огонь", "7 дней"],
+  },
+];
+
 const JOURNEY_START_DATE = "2026-05-26";
 const CORE_HABIT_IDS = [];
 const starterHabits = [
@@ -137,6 +162,8 @@ const els = {
   victoryForm: document.querySelector("#victory-form"),
   victorySubmit: document.querySelector("#victory-submit"),
   victoryEditCancel: document.querySelector("#victory-edit-cancel"),
+  victoryTagSuggestions: document.querySelector("#victory-tag-suggestions"),
+  victoryAwards: document.querySelector("#victory-awards"),
   shadowForm: document.querySelector("#shadow-form"),
   habitForm: document.querySelector("#habit-form"),
   imagePreview: document.querySelector("#image-preview"),
@@ -215,6 +242,8 @@ function boot() {
   setSelectOptions("#victory-category", state.categories);
   setSelectOptions("#victory-role", state.roles);
   document.querySelector("#victory-date").value = state.activeDate;
+  renderVictoryTagSuggestions();
+  renderVictoryAwards();
 
   document.querySelector("#victory-image").addEventListener("change", handleImageUpload);
   els.victoryEditCancel.addEventListener("click", resetVictoryForm);
@@ -524,9 +553,14 @@ function renderChild(habitId, child, date) {
 }
 
 function renderVictories() {
-  const filters = ["Все", ...state.categories];
+  const tagFilters = getKnownVictoryTags();
+  const filters = [
+    { label: "Все", value: "Все" },
+    ...state.categories.map((category) => ({ label: category, value: `category:${category}` })),
+    ...tagFilters.map((tag) => ({ label: `#${tag}`, value: `tag:${tag}` })),
+  ];
   els.victoryFilters.innerHTML = filters.map((filter) => `
-    <button class="filter-chip ${state.victoryFilter === filter ? "active" : ""}" data-filter="${escapeHtml(filter)}" type="button">${escapeHtml(filter)}</button>
+    <button class="filter-chip ${getVictoryFilterValue() === filter.value ? "active" : ""}" data-filter="${escapeHtml(filter.value)}" type="button">${escapeHtml(filter.label)}</button>
   `).join("");
 
   els.victoryFilters.querySelectorAll("[data-filter]").forEach((button) => {
@@ -537,7 +571,7 @@ function renderVictories() {
   });
 
   const victories = [...state.victories]
-    .filter((victory) => state.victoryFilter === "Все" || victory.category === state.victoryFilter)
+    .filter(matchesVictoryFilter)
     .sort((a, b) => b.date.localeCompare(a.date));
 
   if (!victories.length) {
@@ -577,6 +611,77 @@ function renderVictoryCard(victory) {
       </div>
     </article>
   `;
+}
+
+function getVictoryFilterValue() {
+  if (!state.victoryFilter || state.victoryFilter === "Все") return "Все";
+  if (state.victoryFilter.startsWith("category:") || state.victoryFilter.startsWith("tag:")) return state.victoryFilter;
+  if (state.categories.includes(state.victoryFilter)) return `category:${state.victoryFilter}`;
+  return state.victoryFilter;
+}
+
+function matchesVictoryFilter(victory) {
+  const filter = getVictoryFilterValue();
+  if (filter === "Все") return true;
+  if (filter.startsWith("category:")) return victory.category === filter.slice("category:".length);
+  if (filter.startsWith("tag:")) {
+    const tag = normalizeTag(filter.slice("tag:".length));
+    return (victory.tags || []).some((item) => normalizeTag(item) === tag);
+  }
+  return true;
+}
+
+function getKnownVictoryTags() {
+  const tags = new Set(quickVictoryTags.map(normalizeTag));
+  state.victories.forEach((victory) => {
+    (victory.tags || []).forEach((tag) => tags.add(normalizeTag(tag)));
+  });
+  return [...tags].filter(Boolean).sort((a, b) => a.localeCompare(b, "ru"));
+}
+
+function renderVictoryTagSuggestions() {
+  els.victoryTagSuggestions.innerHTML = quickVictoryTags.map((tag) => `
+    <button class="quick-chip" data-victory-tag="${escapeHtml(tag)}" type="button">#${escapeHtml(tag)}</button>
+  `).join("");
+  els.victoryTagSuggestions.querySelectorAll("[data-victory-tag]").forEach((button) => {
+    button.addEventListener("click", () => toggleVictoryTag(button.dataset.victoryTag));
+  });
+}
+
+function renderVictoryAwards() {
+  els.victoryAwards.innerHTML = awards.map((award) => `
+    <button class="award-chip" data-award-id="${escapeHtml(award.id)}" type="button">
+      <img src="${escapeHtml(award.image)}" alt="">
+      <span><strong>${escapeHtml(award.title)}</strong><small>${escapeHtml(award.milestone)}</small></span>
+    </button>
+  `).join("");
+  els.victoryAwards.querySelectorAll("[data-award-id]").forEach((button) => {
+    button.addEventListener("click", () => applyVictoryAward(button.dataset.awardId));
+  });
+}
+
+function getVictoryTagsInput() {
+  return parseTags(document.querySelector("#victory-tags").value);
+}
+
+function setVictoryTagsInput(tags) {
+  document.querySelector("#victory-tags").value = [...new Set(tags.map(normalizeTag).filter(Boolean))].join(", ");
+}
+
+function toggleVictoryTag(tag) {
+  const normalized = normalizeTag(tag);
+  const tags = getVictoryTagsInput();
+  const exists = tags.some((item) => normalizeTag(item) === normalized);
+  setVictoryTagsInput(exists ? tags.filter((item) => normalizeTag(item) !== normalized) : [...tags, normalized]);
+}
+
+function applyVictoryAward(awardId) {
+  const award = awards.find((item) => item.id === awardId);
+  if (!award) return;
+  pendingImage = { preview: award.image };
+  els.imagePreview.innerHTML = `<img src="${escapeHtml(award.image)}" alt="${escapeHtml(award.title)}">`;
+  setVictoryTagsInput([...getVictoryTagsInput(), ...award.tags]);
+  toast(`Награда "${award.title}" добавлена.`);
 }
 
 function renderProgress() {
@@ -776,7 +881,7 @@ async function handleVictorySubmit(event) {
       text,
       category: document.querySelector("#victory-category").value,
       role: document.querySelector("#victory-role").value,
-      tags: parseTags(document.querySelector("#victory-tags").value),
+      tags: getVictoryTagsInput(),
       image: image || existing.image || null,
     };
 
@@ -803,7 +908,7 @@ async function handleVictorySubmit(event) {
     text,
     category: document.querySelector("#victory-category").value,
     role: document.querySelector("#victory-role").value,
-    tags: parseTags(document.querySelector("#victory-tags").value),
+    tags: getVictoryTagsInput(),
     image,
     source: "manual",
   };
@@ -1591,7 +1696,7 @@ async function loadShadowsFromSupabase() {
 async function createVictoryInSupabase(victory, replaceLocal = true) {
   if (!supabaseClient || !supabaseUser) return null;
   const localId = victory.id;
-  let imageUrl = victory.image?.startsWith("http") ? victory.image : null;
+  let imageUrl = getPersistableImageUrl(victory.image);
   if (!imageUrl && victory.imageFile) {
     imageUrl = await uploadMediaFile(victory.imageFile, "victories");
   }
@@ -1601,7 +1706,7 @@ async function createVictoryInSupabase(victory, replaceLocal = true) {
     text: victory.text,
     category: victory.category || null,
     role: victory.role || null,
-    tags: victory.tags || [],
+    tags: normalizeTags(victory.tags || []),
     image_url: imageUrl,
     source: victory.source || "manual",
   };
@@ -1648,8 +1753,8 @@ async function updateVictoryInSupabase(victory) {
     text: victory.text,
     category: victory.category || null,
     role: victory.role || null,
-    tags: victory.tags || [],
-    image_url: victory.image?.startsWith("http") ? victory.image : null,
+    tags: normalizeTags(victory.tags || []),
+    image_url: getPersistableImageUrl(victory.image),
     source: victory.source || "manual",
   };
 
@@ -2206,10 +2311,24 @@ function shadowNote(title, text) {
 }
 
 function parseTags(value) {
-  return value
+  return normalizeTags(value
     .split(",")
     .map((tag) => tag.trim())
-    .filter(Boolean);
+    .filter(Boolean));
+}
+
+function normalizeTag(tag) {
+  return String(tag || "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function normalizeTags(tags) {
+  return [...new Set((tags || []).map(normalizeTag).filter(Boolean))];
+}
+
+function getPersistableImageUrl(image) {
+  if (!image || typeof image !== "string") return null;
+  if (image.startsWith("http") || image.startsWith("assets/")) return image;
+  return null;
 }
 
 function inferShadowTags(text) {

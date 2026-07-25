@@ -942,6 +942,68 @@ h2 {
   object-fit: cover;
 }
 
+.tag-picker,
+.award-picker {
+  display: grid;
+  gap: 8px;
+  margin: -2px 0 14px;
+}
+
+.tag-picker > span,
+.award-picker > span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.quick-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quick-chip {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  padding: 7px 11px;
+  font-weight: 800;
+}
+
+.award-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  border: 1px solid rgba(195, 135, 37, 0.42);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, #fff8df, #ffffff);
+  color: var(--ink);
+  padding: 8px 12px 8px 8px;
+  font-weight: 900;
+  text-align: left;
+}
+
+.award-chip img {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.award-chip span {
+  display: grid;
+  gap: 1px;
+}
+
+.award-chip small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .image-lightbox {
   position: fixed;
   inset: 0;
