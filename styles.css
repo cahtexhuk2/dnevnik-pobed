@@ -731,10 +731,13 @@ h2 {
 }
 
 .victory-card {
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
 .victory-media {
+  flex: 0 0 auto;
   display: grid;
   place-items: center;
   aspect-ratio: 4 / 3;
@@ -766,7 +769,11 @@ h2 {
 }
 
 .victory-body {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
   padding: 14px;
+  background: rgba(255, 255, 255, 0.96);
 }
 
 .victory-date,
