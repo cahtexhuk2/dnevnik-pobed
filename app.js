@@ -101,6 +101,9 @@ const initialState = {
   activeTab: "victories",
   activeDate: toDateInput(new Date()),
   victoryFilter: "Все",
+  victoryCategoryFilters: [],
+  victoryTagFilters: [],
+  victoryFilterOpen: false,
   victoryView: "tile",
   collapsedHabits: {},
   onboardingDismissed: false,
@@ -153,7 +156,8 @@ const els = {
   todaySummary: document.querySelector("#today-summary"),
   habitList: document.querySelector("#habit-list"),
   victoryGrid: document.querySelector("#victory-grid"),
-  victoryFilters: document.querySelector("#victory-filters"),
+  victoryFilterToggle: document.querySelector("#victory-filter-toggle"),
+  victoryFilterPanel: document.querySelector("#victory-filter-panel"),
   victoryTagFilters: document.querySelector("#victory-tag-filters"),
   victoryDetailModal: document.querySelector("#victory-detail-modal"),
   victoryDetailDialog: document.querySelector("#victory-detail-dialog"),
@@ -239,6 +243,10 @@ function boot() {
 
   document.querySelectorAll("[data-victory-view]").forEach((button) => {
     button.addEventListener("click", () => switchVictoryView(button.dataset.victoryView));
+  });
+  els.victoryFilterToggle.addEventListener("click", () => {
+    state.victoryFilterOpen = !state.victoryFilterOpen;
+    saveAndRender();
   });
 
   els.activeDate.value = state.activeDate;
@@ -571,23 +579,37 @@ function renderVictories() {
   });
 
   const tagFilters = getKnownVictoryTags();
-  const categoryFilters = [
-    { label: "Все", value: "Все" },
-    ...state.categories.map((category) => ({ label: category, value: `category:${category}` })),
-  ];
-  els.victoryFilters.innerHTML = categoryFilters.map((filter) => `
-    <button class="filter-chip ${getVictoryFilterValue() === filter.value ? "active" : ""}" data-filter="${escapeHtml(filter.value)}" type="button">${escapeHtml(filter.label)}</button>
-  `).join("");
+  const categoryFilters = getSelectedCategories();
+  const tagSelections = getSelectedTags();
+  const filterCount = categoryFilters.length + tagSelections.length;
+  els.victoryFilterToggle.textContent = filterCount ? `Фильтр ${filterCount}` : "Фильтр";
+  els.victoryFilterToggle.classList.toggle("active", Boolean(filterCount));
+  els.victoryFilterPanel.hidden = !state.victoryFilterOpen;
+  els.victoryFilterPanel.innerHTML = `
+    <div class="filter-panel-head">
+      <strong>Категории</strong>
+      <button class="ghost-action compact-action" data-clear-victory-filters type="button">Все</button>
+    </div>
+    <div class="filter-checks">
+      ${state.categories.map((category) => `
+        <label class="filter-check">
+          <input type="checkbox" data-category-filter="${escapeHtml(category)}" ${categoryFilters.includes(category) ? "checked" : ""}>
+          <span>${escapeHtml(category)}</span>
+        </label>
+      `).join("")}
+    </div>
+  `;
   els.victoryTagFilters.innerHTML = tagFilters.map((tag) => {
     const value = `tag:${tag}`;
-    return `<button class="filter-chip tag-chip ${getVictoryFilterValue() === value ? "active" : ""}" data-filter="${escapeHtml(value)}" type="button">#${escapeHtml(tag)}</button>`;
+    return `<button class="filter-chip tag-chip ${tagSelections.includes(tag) ? "active" : ""}" data-tag-filter="${escapeHtml(tag)}" type="button">#${escapeHtml(tag)}</button>`;
   }).join("");
 
-  document.querySelectorAll("#victory-filters [data-filter], #victory-tag-filters [data-filter]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.victoryFilter = button.dataset.filter;
-      saveAndRender();
-    });
+  els.victoryFilterPanel.querySelectorAll("[data-category-filter]").forEach((input) => {
+    input.addEventListener("change", () => toggleCategoryFilter(input.dataset.categoryFilter));
+  });
+  els.victoryFilterPanel.querySelector("[data-clear-victory-filters]").addEventListener("click", clearVictoryFilters);
+  els.victoryTagFilters.querySelectorAll("[data-tag-filter]").forEach((button) => {
+    button.addEventListener("click", () => toggleTagFilter(button.dataset.tagFilter));
   });
 
   const victories = [...state.victories]
@@ -662,6 +684,48 @@ function getVictoryFilterValue() {
   return state.victoryFilter;
 }
 
+function getSelectedCategories() {
+  return (state.victoryCategoryFilters || []).filter((category) => state.categories.includes(category));
+}
+
+function getSelectedTags() {
+  const known = new Set(getKnownVictoryTags());
+  return (state.victoryTagFilters || []).map(normalizeTag).filter((tag) => known.has(tag));
+}
+
+function toggleCategoryFilter(category) {
+  const selected = new Set(getSelectedCategories());
+  if (selected.has(category)) {
+    selected.delete(category);
+  } else {
+    selected.add(category);
+  }
+  state.victoryCategoryFilters = [...selected];
+  state.victoryFilter = "Все";
+  saveAndRender();
+}
+
+function toggleTagFilter(tag) {
+  const normalized = normalizeTag(tag);
+  const selected = new Set(getSelectedTags());
+  if (selected.has(normalized)) {
+    selected.delete(normalized);
+  } else {
+    selected.add(normalized);
+  }
+  state.victoryTagFilters = [...selected];
+  state.victoryFilter = "Все";
+  saveAndRender();
+}
+
+function clearVictoryFilters() {
+  state.victoryCategoryFilters = [];
+  state.victoryTagFilters = [];
+  state.victoryFilter = "Все";
+  state.victoryFilterOpen = false;
+  saveAndRender();
+}
+
 function getVictoryView() {
   return state.victoryView === "list" ? "list" : "tile";
 }
@@ -672,6 +736,12 @@ function switchVictoryView(view) {
 }
 
 function matchesVictoryFilter(victory) {
+  const selectedCategories = getSelectedCategories();
+  const selectedTags = getSelectedTags();
+  const categoryMatches = !selectedCategories.length || selectedCategories.includes(victory.category);
+  const tagMatches = !selectedTags.length || (victory.tags || []).some((item) => selectedTags.includes(normalizeTag(item)));
+  if (selectedCategories.length || selectedTags.length) return categoryMatches && tagMatches;
+
   const filter = getVictoryFilterValue();
   if (filter === "Все") return true;
   if (filter.startsWith("category:")) return victory.category === filter.slice("category:".length);
@@ -2362,6 +2432,16 @@ function migrateState(loaded) {
   loaded.checks = loaded.checks || {};
   loaded.authMode = loaded.authMode || "login";
   loaded.victoryView = loaded.victoryView === "list" ? "list" : "tile";
+  loaded.victoryCategoryFilters = Array.isArray(loaded.victoryCategoryFilters) ? loaded.victoryCategoryFilters : [];
+  loaded.victoryTagFilters = Array.isArray(loaded.victoryTagFilters) ? loaded.victoryTagFilters : [];
+  loaded.victoryFilterOpen = Boolean(loaded.victoryFilterOpen);
+  if (loaded.victoryFilter?.startsWith?.("category:")) {
+    loaded.victoryCategoryFilters = [loaded.victoryFilter.slice("category:".length)];
+    loaded.victoryFilter = "Все";
+  } else if (loaded.victoryFilter?.startsWith?.("tag:")) {
+    loaded.victoryTagFilters = [normalizeTag(loaded.victoryFilter.slice("tag:".length))];
+    loaded.victoryFilter = "Все";
+  }
   loaded.onboardingPromptSeen = Boolean(loaded.onboardingPromptSeen);
   loaded.onboardingDismissed = Boolean(loaded.onboardingDismissed);
   loaded.localAccount = {

@@ -9,7 +9,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="assets/favicon-512.png" />
     <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
-    <link rel="stylesheet" href="styles.css?v=20260725-5" />
+    <link rel="stylesheet" href="styles.css?v=20260725-6" />
   </head>
   <body>
     <section class="auth-gate" id="auth-gate" hidden>
@@ -122,9 +122,10 @@
                 <button class="view-option active" data-victory-view="tile" type="button" aria-label="Плитка">▦</button>
                 <button class="view-option" data-victory-view="list" type="button" aria-label="Список">☰</button>
               </div>
+              <button class="filter-toggle" id="victory-filter-toggle" type="button">Фильтр</button>
             </div>
           </header>
-          <div class="filters" id="victory-filters"></div>
+          <div class="filter-popover" id="victory-filter-panel" hidden></div>
           <div class="victory-grid" id="victory-grid"></div>
           <section class="tag-filter-section" aria-label="Теги побед">
             <p class="eyebrow">Теги</p>
@@ -387,7 +388,7 @@
       <div class="victory-detail-dialog" id="victory-detail-dialog"></div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js?v=20260725-5"></script>
-    <script src="app.js?v=20260725-5"></script>
+    <script src="config.js?v=20260725-6"></script>
+    <script src="app.js?v=20260725-6"></script>
   </body>
 </html>
