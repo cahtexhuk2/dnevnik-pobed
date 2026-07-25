@@ -154,6 +154,7 @@ const els = {
   habitList: document.querySelector("#habit-list"),
   victoryGrid: document.querySelector("#victory-grid"),
   victoryFilters: document.querySelector("#victory-filters"),
+  victoryTagFilters: document.querySelector("#victory-tag-filters"),
   victoryDetailModal: document.querySelector("#victory-detail-modal"),
   victoryDetailDialog: document.querySelector("#victory-detail-dialog"),
   progressCalendar: document.querySelector("#progress-calendar"),
@@ -570,16 +571,19 @@ function renderVictories() {
   });
 
   const tagFilters = getKnownVictoryTags();
-  const filters = [
+  const categoryFilters = [
     { label: "Все", value: "Все" },
     ...state.categories.map((category) => ({ label: category, value: `category:${category}` })),
-    ...tagFilters.map((tag) => ({ label: `#${tag}`, value: `tag:${tag}` })),
   ];
-  els.victoryFilters.innerHTML = filters.map((filter) => `
+  els.victoryFilters.innerHTML = categoryFilters.map((filter) => `
     <button class="filter-chip ${getVictoryFilterValue() === filter.value ? "active" : ""}" data-filter="${escapeHtml(filter.value)}" type="button">${escapeHtml(filter.label)}</button>
   `).join("");
+  els.victoryTagFilters.innerHTML = tagFilters.map((tag) => {
+    const value = `tag:${tag}`;
+    return `<button class="filter-chip tag-chip ${getVictoryFilterValue() === value ? "active" : ""}" data-filter="${escapeHtml(value)}" type="button">#${escapeHtml(tag)}</button>`;
+  }).join("");
 
-  els.victoryFilters.querySelectorAll("[data-filter]").forEach((button) => {
+  document.querySelectorAll("#victory-filters [data-filter], #victory-tag-filters [data-filter]").forEach((button) => {
     button.addEventListener("click", () => {
       state.victoryFilter = button.dataset.filter;
       saveAndRender();

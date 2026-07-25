@@ -707,11 +707,31 @@ h2 {
   margin-bottom: 16px;
 }
 
+.tag-filter-section {
+  margin-top: 18px;
+  padding-bottom: 12px;
+}
+
+.tag-filter-section .eyebrow {
+  margin-bottom: 8px;
+}
+
+.tag-filters {
+  margin-bottom: 0;
+}
+
+.victory-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .view-switch {
   display: inline-flex;
   gap: 4px;
   width: fit-content;
-  margin: 0 0 12px;
+  margin: 0;
   padding: 4px;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -719,12 +739,17 @@ h2 {
 }
 
 .view-option {
-  min-height: 34px;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
   border: 0;
   border-radius: 999px;
   background: transparent;
   color: var(--muted);
-  padding: 7px 13px;
+  padding: 0;
+  font-size: 18px;
   font-weight: 900;
 }
 
@@ -784,6 +809,8 @@ h2 {
 
 .victory-tile .victory-media {
   width: 100%;
+  height: 190px;
+  aspect-ratio: auto;
 }
 
 .victory-tile .victory-body {
@@ -1636,6 +1663,15 @@ button.day-cell {
     align-items: stretch;
   }
 
+  .victory-toolbar {
+    justify-content: space-between;
+  }
+
+  .victory-toolbar .primary-action {
+    width: auto;
+    flex: 1;
+  }
+
   .summary-strip,
   .victory-grid,
   .progress-layout,
@@ -1661,6 +1697,10 @@ button.day-cell {
   .victory-tile .victory-body {
     min-height: 76px;
     padding: 10px;
+  }
+
+  .victory-tile .victory-media {
+    height: 156px;
   }
 
   .victory-tile .victory-date {
@@ -1699,11 +1739,24 @@ button.day-cell {
   }
 
   .view-switch {
-    width: 100%;
+    flex: 0 0 auto;
+    width: auto;
   }
 
   .view-option {
-    flex: 1;
+    flex: 0 0 auto;
+  }
+
+  .victory-toolbar .primary-action {
+    width: 100%;
+  }
+
+  .victory-tile .victory-media {
+    height: 132px;
+  }
+
+  .victory-tile .victory-body strong {
+    font-size: 15px;
   }
 
   .victory-detail-modal {
