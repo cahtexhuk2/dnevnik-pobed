@@ -849,7 +849,9 @@ h2 {
 }
 
 .victory-grid.tile-view {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 280px));
+  align-items: start;
+  justify-content: start;
 }
 
 .victory-grid.list-view {
