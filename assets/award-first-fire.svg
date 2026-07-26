@@ -2,51 +2,57 @@
   <title id="title">Первый огонь</title>
   <desc id="desc">Золотая награда Дневника Побед за 7 дней подряд</desc>
   <defs>
-    <radialGradient id="sky" cx="50%" cy="38%" r="58%">
-      <stop offset="0%" stop-color="#f7d36a"/>
-      <stop offset="28%" stop-color="#8d5b24"/>
-      <stop offset="62%" stop-color="#17231f"/>
-      <stop offset="100%" stop-color="#07110f"/>
+    <radialGradient id="aura" cx="50%" cy="36%" r="58%">
+      <stop offset="0%" stop-color="#ffe98d"/>
+      <stop offset="26%" stop-color="#c98628"/>
+      <stop offset="58%" stop-color="#173129"/>
+      <stop offset="100%" stop-color="#06100e"/>
     </radialGradient>
-    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#fff2a8"/>
-      <stop offset="28%" stop-color="#d39a2c"/>
-      <stop offset="60%" stop-color="#8b541e"/>
-      <stop offset="100%" stop-color="#f4d06a"/>
+    <linearGradient id="gold" x1="12%" y1="8%" x2="88%" y2="94%">
+      <stop offset="0%" stop-color="#fff6b8"/>
+      <stop offset="24%" stop-color="#e2ae46"/>
+      <stop offset="52%" stop-color="#8f541c"/>
+      <stop offset="78%" stop-color="#ffd36e"/>
+      <stop offset="100%" stop-color="#9a5b1e"/>
     </linearGradient>
-    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur stdDeviation="20" result="blur"/>
-      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 1 0 0.68 0 0 0.42 0 0 0.18 0 0 0 0 0 .85 0"/>
+    <linearGradient id="ridge" x1="18%" y1="12%" x2="78%" y2="86%">
+      <stop offset="0%" stop-color="#415d50"/>
+      <stop offset="100%" stop-color="#14231f"/>
+    </linearGradient>
+    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 1 0 .62 0 0 .36 0 0 .08 0 0 0 0 0 .88 0"/>
       <feMerge>
         <feMergeNode/>
         <feMergeNode in="SourceGraphic"/>
       </feMerge>
     </filter>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#020504" flood-opacity=".55"/>
+    </filter>
   </defs>
 
-  <rect width="1200" height="900" fill="#08110f"/>
-  <circle cx="600" cy="405" r="360" fill="url(#sky)"/>
-  <circle cx="600" cy="405" r="382" fill="none" stroke="url(#gold)" stroke-width="22"/>
-  <circle cx="600" cy="405" r="414" fill="none" stroke="#b77927" stroke-width="6" opacity=".75"/>
+  <rect width="1200" height="900" fill="#06100e"/>
+  <circle cx="600" cy="405" r="386" fill="url(#aura)"/>
+  <circle cx="600" cy="405" r="428" fill="none" stroke="url(#gold)" stroke-width="20"/>
+  <circle cx="600" cy="405" r="468" fill="none" stroke="#d89b36" stroke-width="5" opacity=".7"/>
+  <path d="M170 408c166-104 274-151 430-151s264 47 430 151" fill="none" stroke="#e4b24c" stroke-width="4" opacity=".55"/>
+  <path d="M154 512c150 105 292 156 446 156s296-51 446-156" fill="none" stroke="#e4b24c" stroke-width="4" opacity=".35"/>
 
-  <g opacity=".5" stroke="#d7a23b" stroke-width="4" fill="none">
-    <path d="M170 405c180-120 300-165 430-165s250 45 430 165"/>
-    <path d="M160 520c160 90 300 135 440 135s280-45 440-135"/>
+  <g filter="url(#softGlow)">
+    <path d="M600 125c72 108 39 164 1 214-40 52-54 101-1 161 53-60 39-109-1-161-38-50-71-106 1-214z" fill="#f8ca45"/>
+    <path d="M600 244c37 68 14 99-12 130-30 37-26 79 12 121 38-42 42-84 12-121-26-31-49-62-12-130z" fill="#fff0a3" opacity=".95"/>
   </g>
 
-  <g filter="url(#glow)">
-    <path d="M600 120c58 95 35 142 0 191-37 52-48 98 0 154 48-56 37-102 0-154-35-49-58-96 0-191z" fill="#f5c84b"/>
-    <path d="M600 224c34 61 13 91-10 120-28 35-24 75 10 112 34-37 38-77 10-112-23-29-44-59-10-120z" fill="#fff1a8" opacity=".9"/>
+  <g filter="url(#shadow)">
+    <path d="M195 578 382 322l102 145 88-121 170 232z" fill="#101c19"/>
+    <path d="M382 322 484 467l-93-36-112 147h-84z" fill="url(#ridge)"/>
+    <path d="M572 346 742 578H468z" fill="#203730"/>
+    <path d="M348 370 382 322l42 60-45-15zM547 382l25-36 41 58-41-14z" fill="#f7e7bd"/>
   </g>
 
-  <g>
-    <path d="M210 575 385 330l96 140 82-115 154 220z" fill="#1a2a25"/>
-    <path d="M385 330 481 470l-90-35-92 140H210z" fill="#30473f"/>
-    <path d="M563 355 717 575H485z" fill="#263a34"/>
-    <path d="M353 377 385 330l38 56-42-14zM542 384l21-29 35 51-35-13z" fill="#f6e6bc"/>
-  </g>
-
-  <text x="600" y="670" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="96" font-weight="900" fill="url(#gold)" stroke="#3b220d" stroke-width="3">ПЕРВЫЙ</text>
-  <text x="600" y="764" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="90" font-weight="900" fill="url(#gold)" stroke="#3b220d" stroke-width="3">ОГОНЬ</text>
-  <text x="600" y="826" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="800" fill="#f8e7a4">7 ДНЕЙ ПОДРЯД</text>
+  <rect x="230" y="630" width="740" height="168" rx="28" fill="#07100e" opacity=".72"/>
+  <text x="600" y="704" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="78" font-weight="900" fill="url(#gold)" stroke="#3a210c" stroke-width="3">ПЕРВЫЙ ОГОНЬ</text>
+  <text x="600" y="762" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="900" fill="#fff0ad">7 ДНЕЙ ПОДРЯД</text>
+  <text x="600" y="817" text-anchor="middle" font-family="Arial, sans-serif" font-size="25" font-weight="800" fill="#d7b56a" letter-spacing="2">ДНЕВНИК ПОБЕД</text>
 </svg>

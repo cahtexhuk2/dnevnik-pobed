@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Сила дисциплины</title>
+  <desc id="desc">Платиново-золотая награда Дневника Побед за 40 дней подряд</desc>
+  <defs>
+    <radialGradient id="aura" cx="50%" cy="34%" r="62%">
+      <stop offset="0%" stop-color="#fff6c4"/>
+      <stop offset="18%" stop-color="#e7d28b"/>
+      <stop offset="42%" stop-color="#4e6571"/>
+      <stop offset="70%" stop-color="#16241f"/>
+      <stop offset="100%" stop-color="#050c0a"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="8%" y1="8%" x2="92%" y2="96%">
+      <stop offset="0%" stop-color="#fffbd6"/>
+      <stop offset="22%" stop-color="#f1c964"/>
+      <stop offset="45%" stop-color="#9c641f"/>
+      <stop offset="72%" stop-color="#ffe695"/>
+      <stop offset="100%" stop-color="#a96520"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="15%" y1="10%" x2="84%" y2="92%">
+      <stop offset="0%" stop-color="#d8efe9"/>
+      <stop offset="38%" stop-color="#5a7d76"/>
+      <stop offset="100%" stop-color="#10211d"/>
+    </linearGradient>
+    <filter id="glow" x="-45%" y="-45%" width="190%" height="190%">
+      <feGaussianBlur stdDeviation="25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 1 0 .8 0 0 .62 0 0 .18 0 .04 0 0 0 .95 0"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="20" stdDeviation="20" flood-color="#020504" flood-opacity=".6"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="900" fill="#050c0a"/>
+  <circle cx="600" cy="398" r="392" fill="url(#aura)"/>
+  <circle cx="600" cy="398" r="438" fill="none" stroke="url(#gold)" stroke-width="24"/>
+  <circle cx="600" cy="398" r="492" fill="none" stroke="#e8d07a" stroke-width="7" opacity=".62"/>
+  <circle cx="600" cy="398" r="340" fill="none" stroke="#ffffff" stroke-width="3" opacity=".28"/>
+  <path d="M110 400c176-120 314-180 490-180s314 60 490 180" fill="none" stroke="#f0c45d" stroke-width="5" opacity=".5"/>
+  <path d="M118 525c170 112 322 166 482 166s312-54 482-166" fill="none" stroke="#f0c45d" stroke-width="5" opacity=".32"/>
+
+  <g filter="url(#glow)">
+    <path d="M600 88c118 139 49 207 5 265-50 65-48 128-5 188 80-91 72-157 23-224-45-61-91-112-23-229z" fill="#ffd55a"/>
+    <path d="M544 266c41 83 2 125-28 167-23 34-15 76 28 124 61-55 68-106 34-156-28-42-58-76-34-135z" fill="#fff7bd" opacity=".95"/>
+    <path d="M661 245c-16 69 13 109 42 150 35 51 23 101-36 158-23-55-7-103 19-146 25-41 35-86-25-162z" fill="#e9b847" opacity=".96"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <path d="M166 580 383 305l113 158 97-135 199 252z" fill="#0b1412"/>
+    <path d="M383 305 496 463l-102-36-136 153h-92z" fill="url(#steel)"/>
+    <path d="M593 328 792 580H472z" fill="#1b312c"/>
+    <path d="M338 362 383 305l48 65-53-15zM561 373l32-45 50 65-52-15z" fill="#fff7d8"/>
+  </g>
+
+  <g transform="translate(600 578)">
+    <path d="M0-100 94-36 58 82H-58L-94-36z" fill="#07100e" stroke="url(#gold)" stroke-width="12"/>
+    <text y="25" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="68" font-weight="900" fill="#ffe088">40</text>
+  </g>
+
+  <rect x="152" y="656" width="896" height="164" rx="32" fill="#07100e" opacity=".8"/>
+  <text x="600" y="718" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="64" font-weight="900" fill="url(#gold)" stroke="#33200d" stroke-width="3">СИЛА ДИСЦИПЛИНЫ</text>
+  <text x="600" y="777" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="900" fill="#fff1b5">40 ДНЕЙ ПОДРЯД</text>
+  <text x="600" y="833" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="800" fill="#e2d49a" letter-spacing="2">ДНЕВНИК ПОБЕД</text>
+</svg>

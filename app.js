@@ -24,6 +24,9 @@ const categories = [
 ];
 
 const quickVictoryTags = [
+  "7 дней",
+  "21 день",
+  "40 дней",
   "подъем",
   "подмасадана",
   "вокал",
@@ -36,6 +39,8 @@ const quickVictoryTags = [
   "отношения",
   "смелость",
   "первый огонь",
+  "новая привычка",
+  "сила дисциплины",
 ];
 
 const awards = [
@@ -45,6 +50,20 @@ const awards = [
     milestone: "7 дней подряд",
     image: "assets/award-first-fire.svg",
     tags: ["первый огонь", "7 дней"],
+  },
+  {
+    id: "new-habit-21",
+    title: "Новая привычка",
+    milestone: "21 день подряд",
+    image: "assets/award-21-days.svg",
+    tags: ["новая привычка", "21 день"],
+  },
+  {
+    id: "discipline-40",
+    title: "Сила дисциплины",
+    milestone: "40 дней подряд",
+    image: "assets/award-40-days.svg",
+    tags: ["сила дисциплины", "40 дней"],
   },
 ];
 
@@ -803,6 +822,13 @@ function applyVictoryAward(awardId) {
   els.imagePreview.innerHTML = `<img src="${escapeHtml(award.image)}" alt="${escapeHtml(award.title)}">`;
   setVictoryTagsInput([...getVictoryTagsInput(), ...award.tags]);
   toast(`Награда "${award.title}" добавлена.`);
+}
+
+function getAwardForMilestone(days) {
+  if (days === 7) return awards.find((award) => award.id === "first-fire");
+  if (days === 21) return awards.find((award) => award.id === "new-habit-21");
+  if (days === 40) return awards.find((award) => award.id === "discipline-40");
+  return null;
 }
 
 function openVictoryDetail(id) {
@@ -2286,14 +2312,15 @@ function buildAchievements() {
 async function createAchievementVictory(habitId, days) {
   const habit = state.habits.find((item) => item.id === habitId);
   if (!habit) return;
+  const award = getAwardForMilestone(days);
   const victory = {
     id: uid(),
     date: state.activeDate,
     text: `Я сделал ${days} дней подряд: ${habit.name}.`,
     category: habit.name.includes("Вокал") ? "Вокал" : habit.name.includes("Вегетариан") ? "Питание" : "Дисциплина",
     role: habit.name.includes("Вокал") ? "Я как творец" : "Я как практик",
-    tags: ["серия", `${days} дней`],
-    image: null,
+    tags: [...new Set(["серия", `${days} дней`, ...(award?.tags || [])])],
+    image: award?.image || null,
     source: `achievement:${habit.id}:${days}`,
   };
   state.victories.push(victory);
