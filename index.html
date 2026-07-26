@@ -78,6 +78,9 @@
         <button class="nav-item" data-tab="shadow" type="button">
           <span class="icon">◐</span><span>Тень</span>
         </button>
+        <button class="nav-item" data-tab="awards" type="button">
+          <span class="icon">★</span><span>Награды</span>
+        </button>
         <button class="nav-item" data-tab="profile" type="button">
           <span class="icon">◎</span><span>Профиль</span>
         </button>
@@ -324,6 +327,7 @@
                   <input id="profile-avatar-input" type="file" accept="image/*" />
                 </label>
               </div>
+              <div class="profile-award-showcase" id="profile-award-showcase"></div>
               <label class="field">
                 <span>Имя на платформе</span>
                 <input id="profile-display-name" type="text" placeholder="Ваше имя" />
@@ -348,12 +352,56 @@
               </label>
               <div class="profile-actions">
                 <button class="primary-action" type="submit">Сохранить профиль</button>
+                <button class="ghost-action" data-tab-jump="awards" type="button">Награды</button>
                 <button class="ghost-action" id="start-onboarding" type="button">Пройти обучение</button>
                 <button class="ghost-action" id="export-data" type="button">Экспорт данных</button>
                 <button class="danger-action" id="auth-sign-out" type="button" hidden>Выйти</button>
               </div>
             </form>
           </div>
+        </section>
+
+        <section class="screen" id="awards-screen" data-screen="awards">
+          <header class="screen-header awards-hero">
+            <div>
+              <p class="eyebrow">Профиль</p>
+              <h1>Награды</h1>
+              <p>Здесь собираются твои доказательства пути. Каждая серия, каждый закрытый рубеж и каждая сильная привычка превращаются в знак, который приятно видеть и хочется усилить.</p>
+            </div>
+            <div class="awards-hero-card" id="awards-hero-card"></div>
+          </header>
+
+          <div class="awards-stats" id="awards-stats"></div>
+
+          <section class="panel awards-panel">
+            <div>
+              <p class="eyebrow">Путь</p>
+              <h2>Открывай уровни шаг за шагом</h2>
+              <p>Начни с одного дня, удержи ритм неделю, закрепи привычку и двигайся дальше.</p>
+            </div>
+            <div class="awards-track" id="awards-track"></div>
+          </section>
+
+          <section class="awards-section">
+            <div>
+              <p class="eyebrow">Коллекция</p>
+              <h2>Главные награды</h2>
+              <p>Чем дольше путь, тем сильнее ранг, ярче оформление и редче знак.</p>
+            </div>
+            <div class="awards-grid" id="awards-grid"></div>
+          </section>
+
+          <section class="awards-section">
+            <div>
+              <p class="eyebrow">Символы</p>
+              <h2>У каждой победы свой знак</h2>
+            </div>
+            <div class="award-symbol-grid">
+              <article class="award-symbol-card"><strong>Кайлас</strong><span>Практики, медитация, внутренний путь и большие духовные рубежи.</span></article>
+              <article class="award-symbol-card"><strong>Огонь</strong><span>Серии, дисциплина и дни, когда ты не остановился.</span></article>
+              <article class="award-symbol-card"><strong>Пирамиды</strong><span>Бизнес, тело, деньги, воля и устойчивый фундамент.</span></article>
+            </div>
+          </section>
         </section>
       </main>
 
@@ -388,7 +436,7 @@
       <div class="victory-detail-dialog" id="victory-detail-dialog"></div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js?v=20260725-7"></script>
-    <script src="app.js?v=20260725-7"></script>
+    <script src="config.js?v=20260726-1"></script>
+    <script src="app.js?v=20260726-1"></script>
   </body>
 </html>

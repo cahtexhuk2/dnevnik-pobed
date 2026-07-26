@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 300" role="img" aria-labelledby="title desc">
+  <title id="title">Новая привычка</title>
+  <desc id="desc">Silver награда за 21 день подряд</desc>
+  <defs>
+    <linearGradient id="silver" x1="12%" y1="8%" x2="88%" y2="94%"><stop offset="0%" stop-color="#f8fbff"/><stop offset="46%" stop-color="#9fb3ce"/><stop offset="100%" stop-color="#40526f"/></linearGradient>
+    <linearGradient id="blue" x1="12%" y1="8%" x2="88%" y2="94%"><stop offset="0%" stop-color="#9ef4ff"/><stop offset="44%" stop-color="#2ba8ff"/><stop offset="100%" stop-color="#1458bf"/></linearGradient>
+    <filter id="shadow" x="-25%" y="-20%" width="150%" height="150%"><feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#000" flood-opacity=".45"/></filter>
+  </defs>
+  <rect width="260" height="300" fill="#0b0912"/>
+  <g filter="url(#shadow)">
+    <path d="M82 122c-29 13-47 35-55 68M178 122c29 13 47 35 55 68" fill="none" stroke="url(#blue)" stroke-width="12" stroke-linecap="round"/>
+    <path d="M130 20 207 65v88l-77 44-77-44V65Z" fill="url(#silver)" stroke="#dbeaff" stroke-width="12"/>
+    <path d="M130 48 181 78v60l-51 30-51-30V78Z" fill="none" stroke="#fff" stroke-width="4" opacity=".7"/>
+    <path d="M68 150 95 120 111 78 130 50 149 57 165 88 185 122 202 150Z" fill="#12201d"/>
+    <path d="M111 78 130 50 149 57 165 88 153 87 145 75 131 74 119 82Z" fill="#f5f7ef"/>
+    <path d="M84 118h96M76 138h112M100 98h65" fill="none" stroke="#f5f7ef" stroke-width="5" stroke-linecap="round"/>
+    <path d="M87 190v66l43-24 43 24v-66Z" fill="#6d83ad" stroke="#dbeaff" stroke-width="6"/>
+    <path d="M106 8 114 25 132 28 119 41 122 59 106 50 90 59 93 41 80 28 98 25Z" fill="url(#blue)"/>
+    <path d="M154 8 162 25 180 28 167 41 170 59 154 50 138 59 141 41 128 28 146 25Z" fill="url(#blue)"/>
+    <text x="130" y="225" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="42" font-weight="950" fill="#fff">21</text>
+  </g>
+</svg>

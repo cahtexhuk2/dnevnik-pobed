@@ -27,6 +27,9 @@ const quickVictoryTags = [
   "7 дней",
   "21 день",
   "40 дней",
+  "50 дней",
+  "90 дней",
+  "108 дней",
   "подъем",
   "подмасадана",
   "вокал",
@@ -41,6 +44,9 @@ const quickVictoryTags = [
   "первый огонь",
   "новая привычка",
   "сила дисциплины",
+  "знак мастерства",
+  "вершина пути",
+  "большой обет",
 ];
 
 const awards = [
@@ -48,23 +54,75 @@ const awards = [
     id: "first-fire",
     title: "Первый огонь",
     milestone: "7 дней подряд",
-    image: "assets/award-first-fire.svg",
+    days: 7,
+    rank: "Bronze",
+    image: "assets/award-bronze-7.svg",
     tags: ["первый огонь", "7 дней"],
+    description: "Первый настоящий рубеж. Ты доказал себе, что можешь держать серию.",
   },
   {
     id: "new-habit-21",
     title: "Новая привычка",
     milestone: "21 день подряд",
-    image: "assets/award-21-days.svg",
+    days: 21,
+    rank: "Silver",
+    image: "assets/award-silver-21.svg",
     tags: ["новая привычка", "21 день"],
+    description: "Ритм уже держится. Привычка начинает становиться частью твоего дня.",
   },
   {
     id: "discipline-40",
     title: "Сила дисциплины",
     milestone: "40 дней подряд",
-    image: "assets/award-40-days.svg",
+    days: 40,
+    rank: "Gold",
+    image: "assets/award-gold-40.svg",
     tags: ["сила дисциплины", "40 дней"],
+    description: "Серьезный рубеж. Здесь уже видна не мотивация, а характер.",
   },
+  {
+    id: "master-50",
+    title: "Знак мастерства",
+    milestone: "50 дней подряд",
+    days: 50,
+    rank: "Master",
+    image: "assets/award-master-50.svg",
+    tags: ["знак мастерства", "50 дней"],
+    description: "Ты не просто начал. Ты построил опору, на которую можно положиться.",
+  },
+  {
+    id: "summit-90",
+    title: "Вершина пути",
+    milestone: "90 дней подряд",
+    days: 90,
+    rank: "Platinum",
+    image: "assets/award-platinum-90.svg",
+    tags: ["вершина пути", "90 дней"],
+    description: "Большой челлендж закрыт. Это редкая награда за долгую верность пути.",
+  },
+  {
+    id: "vow-108",
+    title: "Большой обет",
+    milestone: "108 дней подряд",
+    days: 108,
+    rank: "Kailash",
+    image: "assets/award-kailash-108.svg",
+    tags: ["большой обет", "108 дней"],
+    description: "Особая награда для тех, кто прошел дальше обычного рубежа.",
+  },
+];
+
+const awardPathLevels = [
+  { days: 1, title: "Старт" },
+  { days: 3, title: "Искра" },
+  { days: 7, title: "Bronze" },
+  { days: 14, title: "Ритм" },
+  { days: 21, title: "Silver" },
+  { days: 30, title: "Опора" },
+  { days: 40, title: "Gold" },
+  { days: 50, title: "Мастер" },
+  { days: 90, title: "Platinum" },
+  { days: 108, title: "Kailash" },
 ];
 
 const JOURNEY_START_DATE = "2026-05-26";
@@ -184,6 +242,10 @@ const els = {
   calendarTotal: document.querySelector("#calendar-total"),
   streakList: document.querySelector("#streak-list"),
   achievementList: document.querySelector("#achievement-list"),
+  awardsHeroCard: document.querySelector("#awards-hero-card"),
+  awardsStats: document.querySelector("#awards-stats"),
+  awardsTrack: document.querySelector("#awards-track"),
+  awardsGrid: document.querySelector("#awards-grid"),
   shadowList: document.querySelector("#shadow-list"),
   toast: document.querySelector("#toast"),
   victoryForm: document.querySelector("#victory-form"),
@@ -218,6 +280,7 @@ const els = {
   authSubmit: document.querySelector("#auth-submit"),
   profileForm: document.querySelector("#profile-form"),
   profileAvatar: document.querySelector("#profile-avatar"),
+  profileAwardShowcase: document.querySelector("#profile-award-showcase"),
   profileAvatarInput: document.querySelector("#profile-avatar-input"),
   profileDisplayName: document.querySelector("#profile-display-name"),
   profileBirthYear: document.querySelector("#profile-birth-year"),
@@ -328,6 +391,7 @@ function render() {
   renderToday();
   renderVictories();
   renderProgress();
+  renderAwards();
   renderShadow();
   renderProfile();
 }
@@ -825,10 +889,7 @@ function applyVictoryAward(awardId) {
 }
 
 function getAwardForMilestone(days) {
-  if (days === 7) return awards.find((award) => award.id === "first-fire");
-  if (days === 21) return awards.find((award) => award.id === "new-habit-21");
-  if (days === 40) return awards.find((award) => award.id === "discipline-40");
-  return null;
+  return awards.find((award) => award.days === days) || null;
 }
 
 function openVictoryDetail(id) {
@@ -913,6 +974,92 @@ function renderProgress() {
   els.achievementList.querySelectorAll("[data-create-achievement]").forEach((button) => {
     button.addEventListener("click", () => createAchievementVictory(button.dataset.createAchievement, Number(button.dataset.days)));
   });
+}
+
+function renderAwards() {
+  if (!els.awardsGrid) return;
+  const bestStreak = getBestOverallStreak();
+  const unlocked = getUnlockedAwards(bestStreak);
+  const topAward = unlocked.at(-1) || awards[0];
+  const nextAward = awards.find((award) => bestStreak < award.days);
+
+  els.awardsHeroCard.innerHTML = `
+    <img src="${escapeHtml(topAward.image)}" alt="${escapeHtml(topAward.title)}">
+    <strong>${escapeHtml(unlocked.length ? topAward.title : "Первая награда ждет")}</strong>
+    <span>${escapeHtml(unlocked.length ? topAward.milestone : "начни серию и открой Bronze")}</span>
+  `;
+
+  els.awardsStats.innerHTML = [
+    { value: unlocked.length, label: "открыто" },
+    { value: awards.length, label: "всего" },
+    { value: bestStreak, label: "лучшая серия" },
+    { value: nextAward ? nextAward.days - bestStreak : "✓", label: nextAward ? "дней до следующей" : "все рубежи" },
+  ].map((item) => `
+    <article class="award-stat-card">
+      <strong>${escapeHtml(String(item.value))}</strong>
+      <span>${escapeHtml(item.label)}</span>
+    </article>
+  `).join("");
+
+  els.awardsTrack.innerHTML = awardPathLevels.map((level) => {
+    const award = awards.find((item) => item.days === level.days);
+    const isUnlocked = bestStreak >= level.days;
+    return `
+      <div class="award-level ${isUnlocked ? "unlocked" : "locked"}">
+        ${award ? `<img src="${escapeHtml(award.image)}" alt="">` : `<span>${level.days}</span>`}
+        <strong>${escapeHtml(level.title)}</strong>
+        <small>${level.days} дн.</small>
+      </div>
+    `;
+  }).join("");
+
+  els.awardsGrid.innerHTML = awards.map((award) => {
+    const isUnlocked = bestStreak >= award.days;
+    const remaining = Math.max(0, award.days - bestStreak);
+    return `
+      <article class="award-collection-card ${isUnlocked ? "unlocked" : "locked"}">
+        <img src="${escapeHtml(award.image)}" alt="${escapeHtml(award.title)}">
+        <strong>${escapeHtml(award.title)}</strong>
+        <span>${escapeHtml(award.rank)} · ${escapeHtml(award.milestone)}</span>
+        <p>${escapeHtml(award.description)}</p>
+        <small>${isUnlocked ? "Открыто" : `Осталось ${remaining} дн.`}</small>
+      </article>
+    `;
+  }).join("");
+}
+
+function renderProfileAwards() {
+  if (!els.profileAwardShowcase) return;
+  const bestStreak = getBestOverallStreak();
+  const unlocked = getUnlockedAwards(bestStreak);
+  const topAward = unlocked.at(-1);
+
+  if (!topAward) {
+    els.profileAwardShowcase.innerHTML = `
+      <div class="profile-rank-card empty">
+        <strong>Награды ждут</strong>
+        <span>Закрой 7 дней подряд, чтобы открыть первый знак.</span>
+      </div>
+    `;
+    return;
+  }
+
+  els.profileAwardShowcase.innerHTML = `
+    <div class="profile-rank-card">
+      <img src="${escapeHtml(topAward.image)}" alt="${escapeHtml(topAward.title)}">
+      <div>
+        <strong>${escapeHtml(topAward.rank)} · ${escapeHtml(topAward.title)}</strong>
+        <span>Лучший рубеж: ${bestStreak} дн.</span>
+      </div>
+    </div>
+    <div class="profile-award-mini-row">
+      ${unlocked.slice(-5).map((award) => `
+        <span class="profile-award-mini" title="${escapeHtml(award.title)}">
+          <img src="${escapeHtml(award.image)}" alt="">
+        </span>
+      `).join("")}
+    </div>
+  `;
 }
 
 function renderCalendar() {
@@ -1039,6 +1186,7 @@ function renderProfile() {
   els.profileJourneyStart.value = profile.journeyStartDate || state.journeyStartDate || JOURNEY_START_DATE;
   els.profileBio.value = profile.bio || "";
   setAvatar(els.profileAvatar, profile.avatar, profile.displayName || state.localAccount?.email || "ДП");
+  renderProfileAwards();
 
   if (signedIn) {
     els.authSubmit.textContent = connected ? "Войти под другим email" : "Обновить вход";
@@ -2293,8 +2441,17 @@ function getBestStreak(habitId) {
   return Math.max(best, getStreak(habitId));
 }
 
+function getBestOverallStreak() {
+  if (!state.habits.length) return 0;
+  return Math.max(...state.habits.map((habit) => getBestStreak(habit.id)), 0);
+}
+
+function getUnlockedAwards(bestStreak = getBestOverallStreak()) {
+  return awards.filter((award) => bestStreak >= award.days);
+}
+
 function buildAchievements() {
-  const marks = [7, 21, 40, 90, 100];
+  const marks = awards.map((award) => award.days);
   return state.habits.flatMap((habit) => {
     const streak = getStreak(habit.id);
     return marks

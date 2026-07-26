@@ -1580,6 +1580,330 @@ button.day-cell {
   gap: 8px;
 }
 
+.profile-award-showcase {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-rank-card {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 18% 20%, rgba(241, 176, 58, .2), transparent 120px),
+    #111a1b;
+  color: #fff;
+}
+
+.profile-rank-card.empty {
+  display: block;
+  color: var(--ink);
+  background: #f8f6f1;
+}
+
+.profile-rank-card img {
+  width: 64px;
+  height: 74px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 12px rgba(0,0,0,.28));
+}
+
+.profile-rank-card strong,
+.profile-rank-card span {
+  display: block;
+}
+
+.profile-rank-card span {
+  margin-top: 4px;
+  color: rgba(255,255,255,.68);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.profile-rank-card.empty span {
+  color: var(--muted);
+}
+
+.profile-award-mini-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.profile-award-mini {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.profile-award-mini img {
+  width: 40px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.awards-hero {
+  grid-template-columns: minmax(0, 1fr) 280px;
+}
+
+.awards-hero p {
+  max-width: 720px;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.awards-hero-card {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 18px;
+  border-radius: 24px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(241, 176, 58, .28), transparent 150px),
+    linear-gradient(180deg, #252e31 0%, #0b1012 100%);
+  box-shadow: var(--shadow);
+}
+
+.awards-hero-card img {
+  width: 172px;
+  height: 198px;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 20px rgba(0,0,0,.35));
+}
+
+.awards-hero-card strong,
+.awards-hero-card span {
+  display: block;
+  text-align: center;
+}
+
+.awards-hero-card strong {
+  font-size: 20px;
+}
+
+.awards-hero-card span {
+  color: rgba(255,255,255,.68);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.awards-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.award-stat-card {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.award-stat-card strong,
+.award-stat-card span {
+  display: block;
+}
+
+.award-stat-card strong {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.award-stat-card span {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.awards-panel,
+.awards-section {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.awards-panel p,
+.awards-section p {
+  max-width: 720px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.awards-track {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(86px, 1fr));
+  overflow-x: auto;
+  padding: 8px 0 2px;
+}
+
+.award-level {
+  position: relative;
+  min-width: 92px;
+  text-align: center;
+}
+
+.award-level::before {
+  content: "";
+  position: absolute;
+  top: 36px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(220, 151, 46, .28);
+}
+
+.award-level:first-child::before {
+  left: 50%;
+}
+
+.award-level:last-child::before {
+  right: 50%;
+}
+
+.award-level img,
+.award-level > span {
+  position: relative;
+  z-index: 1;
+}
+
+.award-level img {
+  width: 70px;
+  height: 78px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 10px rgba(0,0,0,.14));
+}
+
+.award-level > span {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin: 6px auto 14px;
+  border-radius: 50%;
+  background: #f5dfaa;
+  color: #9b611e;
+  font-weight: 950;
+}
+
+.award-level.locked {
+  opacity: .45;
+  filter: grayscale(.55);
+}
+
+.award-level strong,
+.award-level small {
+  display: block;
+}
+
+.award-level strong {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.award-level small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.awards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.award-collection-card {
+  min-height: 360px;
+  padding: 18px;
+  border-radius: 24px;
+  color: #fff;
+  text-align: center;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(255,255,255,.14), transparent 130px),
+    linear-gradient(180deg, #171222 0%, #0b0912 100%);
+  box-shadow: 0 20px 48px rgba(11, 9, 18, .2);
+}
+
+.award-collection-card.locked {
+  opacity: .54;
+  filter: grayscale(.5);
+}
+
+.award-collection-card img {
+  width: min(190px, 100%);
+  height: 220px;
+  object-fit: contain;
+  filter: drop-shadow(0 16px 18px rgba(0,0,0,.35));
+}
+
+.award-collection-card strong,
+.award-collection-card span,
+.award-collection-card small {
+  display: block;
+}
+
+.award-collection-card strong {
+  font-size: 20px;
+}
+
+.award-collection-card span {
+  margin-top: 4px;
+  color: rgba(255,255,255,.68);
+  font-weight: 800;
+}
+
+.award-collection-card p {
+  margin: 10px auto 0;
+  color: rgba(255,255,255,.58);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.award-collection-card small {
+  margin-top: 10px;
+  color: #f5d37e;
+  font-weight: 900;
+}
+
+.award-symbol-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.award-symbol-card {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.award-symbol-card strong,
+.award-symbol-card span {
+  display: block;
+}
+
+.award-symbol-card span {
+  margin-top: 6px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .form-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1749,6 +2073,10 @@ button.day-cell {
   .calendar-wrap,
   .shadow-grid,
   .profile-layout,
+  .awards-hero,
+  .awards-stats,
+  .awards-grid,
+  .award-symbol-grid,
   .field-grid {
     grid-template-columns: 1fr;
   }
@@ -1885,6 +2213,19 @@ button.day-cell {
 
   .profile-top {
     grid-template-columns: 1fr;
+  }
+
+  .awards-hero-card img {
+    width: 144px;
+    height: 166px;
+  }
+
+  .award-collection-card {
+    min-height: 320px;
+  }
+
+  .award-collection-card img {
+    height: 190px;
   }
 
   .onboarding-dialog {
