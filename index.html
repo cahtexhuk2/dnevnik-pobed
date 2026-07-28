@@ -9,7 +9,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="assets/favicon-512.png" />
     <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
-    <link rel="stylesheet" href="styles.css?v=20260725-8" />
+    <link rel="stylesheet" href="styles.css?v=20260727-1" />
   </head>
   <body>
     <section class="auth-gate" id="auth-gate" hidden>
@@ -294,8 +294,8 @@
             </div>
           </header>
 
-          <div class="profile-layout">
-            <section class="panel profile-card">
+          <div class="profile-layout" id="profile-layout">
+            <section class="panel profile-card profile-auth-card" id="profile-auth-card">
               <div class="connection-status" id="connection-status"></div>
               <div class="auth-tabs" role="tablist" aria-label="Вход или регистрация">
                 <button class="form-tab active" data-auth-mode="login" type="button">Вход</button>
@@ -437,6 +437,6 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js?v=20260726-1"></script>
-    <script src="app.js?v=20260726-1"></script>
+    <script src="app.js?v=20260727-1"></script>
   </body>
 </html>

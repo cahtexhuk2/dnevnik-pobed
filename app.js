@@ -272,6 +272,8 @@ const els = {
   onboardingLearn: document.querySelector("#onboarding-learn"),
   onboardingSkip: document.querySelector("#onboarding-skip"),
   connectionStatus: document.querySelector("#connection-status"),
+  profileLayout: document.querySelector("#profile-layout"),
+  profileAuthCard: document.querySelector("#profile-auth-card"),
   authForm: document.querySelector("#auth-form"),
   authNameField: document.querySelector(".auth-name-field"),
   authName: document.querySelector("#auth-name"),
@@ -580,15 +582,17 @@ function renderAccount() {
 function renderToday() {
   const date = state.activeDate;
   const completion = getDayCompletion(date);
-  const completeHabits = state.habits.filter((habit) => habitStatus(habit, date).status === "done").length;
-  const partialHabits = state.habits.filter((habit) => habitStatus(habit, date).status === "partial").length;
+  const visibleHabits = getVisibleHabitsForDate(date);
+  const skippedHabits = getSkippedHabitsForDate(date);
+  const completeHabits = visibleHabits.filter((habit) => habitStatus(habit, date).status === "done").length;
+  const partialHabits = visibleHabits.filter((habit) => habitStatus(habit, date).status === "partial").length;
 
   els.todayWeekday.textContent = formatWeekday(date);
   els.todaySummary.innerHTML = [
     metric(`${completion}%`, "день закрыт"),
     metric(`${completeHabits}`, "выполнено"),
     metric(`${partialHabits}`, "частично"),
-    metric(`${state.habits.length}`, "привычек"),
+    metric(`${visibleHabits.length}`, "привычек"),
   ].join("");
 
   if (!state.habits.length) {
@@ -596,7 +600,10 @@ function renderToday() {
     return;
   }
 
-  els.habitList.innerHTML = state.habits.map((habit) => renderHabit(habit, date)).join("");
+  els.habitList.innerHTML = [
+    visibleHabits.map((habit, index) => renderHabit(habit, date, index, visibleHabits.length)).join(""),
+    renderSkippedHabits(skippedHabits, date),
+  ].join("");
   els.habitList.querySelectorAll("[data-toggle-habit]").forEach((button) => {
     button.addEventListener("click", () => toggleHabit(button.dataset.toggleHabit));
   });
@@ -606,12 +613,18 @@ function renderToday() {
   els.habitList.querySelectorAll("[data-toggle-collapse]").forEach((button) => {
     button.addEventListener("click", () => toggleHabitCollapse(button.dataset.toggleCollapse));
   });
-  els.habitList.querySelectorAll("[data-delete-habit]").forEach((button) => {
-    button.addEventListener("click", () => deleteHabit(button.dataset.deleteHabit));
+  els.habitList.querySelectorAll("[data-skip-habit]").forEach((button) => {
+    button.addEventListener("click", () => skipHabitForDate(button.dataset.skipHabit, date));
+  });
+  els.habitList.querySelectorAll("[data-restore-habit]").forEach((button) => {
+    button.addEventListener("click", () => restoreHabitForDate(button.dataset.restoreHabit, date));
+  });
+  els.habitList.querySelectorAll("[data-move-habit]").forEach((button) => {
+    button.addEventListener("click", () => moveHabit(button.dataset.moveHabit, Number(button.dataset.direction)));
   });
 }
 
-function renderHabit(habit, date) {
+function renderHabit(habit, date, index = 0, total = state.habits.length) {
   const result = habitStatus(habit, date);
   const streak = getStreak(habit.id);
   const collapsed = Boolean(state.collapsedHabits?.[habit.id]);
@@ -638,11 +651,29 @@ function renderHabit(habit, date) {
           </span>
         </button>
         <span class="habit-streak">${streak} дн.</span>
+        <div class="habit-order-controls" aria-label="Порядок привычки">
+          <button class="habit-order" data-move-habit="${habit.id}" data-direction="-1" type="button" ${index === 0 ? "disabled" : ""} aria-label="Поднять ${escapeHtml(habit.name)}">↑</button>
+          <button class="habit-order" data-move-habit="${habit.id}" data-direction="1" type="button" ${index === total - 1 ? "disabled" : ""} aria-label="Опустить ${escapeHtml(habit.name)}">↓</button>
+        </div>
         ${collapseButton}
-        <button class="habit-delete" data-delete-habit="${habit.id}" type="button" aria-label="Удалить ${escapeHtml(habit.name)}">×</button>
+        <button class="habit-delete" data-skip-habit="${habit.id}" type="button" aria-label="Убрать ${escapeHtml(habit.name)} только на этот день">×</button>
       </div>
       ${children}
     </article>
+  `;
+}
+
+function renderSkippedHabits(skippedHabits, date) {
+  if (!skippedHabits.length) return "";
+  return `
+    <section class="skipped-habits">
+      <strong>Убрано только на ${formatDate(date)}</strong>
+      <div class="skipped-list">
+        ${skippedHabits.map((habit) => `
+          <button class="ghost-action compact-action" data-restore-habit="${habit.id}" type="button">Вернуть: ${escapeHtml(habit.name)}</button>
+        `).join("")}
+      </div>
+    </section>
   `;
 }
 
@@ -853,7 +884,13 @@ function renderVictoryTagSuggestions() {
 }
 
 function renderVictoryAwards() {
-  els.victoryAwards.innerHTML = awards.map((award) => `
+  const unlockedAwards = getUnlockedAwards();
+  if (!unlockedAwards.length) {
+    els.victoryAwards.innerHTML = `<div class="award-empty-note">Первые награды откроются после серии 7 дней подряд.</div>`;
+    return;
+  }
+
+  els.victoryAwards.innerHTML = unlockedAwards.map((award) => `
     <button class="award-chip" data-award-id="${escapeHtml(award.id)}" type="button">
       <img src="${escapeHtml(award.image)}" alt="">
       <span><strong>${escapeHtml(award.title)}</strong><small>${escapeHtml(award.milestone)}</small></span>
@@ -882,6 +919,10 @@ function toggleVictoryTag(tag) {
 function applyVictoryAward(awardId) {
   const award = awards.find((item) => item.id === awardId);
   if (!award) return;
+  if (!getUnlockedAwards().some((item) => item.id === award.id)) {
+    toast("Эта награда еще не открыта.");
+    return;
+  }
   pendingImage = { preview: award.image };
   els.imagePreview.innerHTML = `<img src="${escapeHtml(award.image)}" alt="${escapeHtml(award.title)}">`;
   setVictoryTagsInput([...getVictoryTagsInput(), ...award.tags]);
@@ -1163,12 +1204,19 @@ function renderProfile() {
   const signedIn = Boolean(state.localAccount?.isSignedIn);
   const profile = state.profile || {};
 
+  if (els.profileAuthCard) {
+    els.profileAuthCard.hidden = signedIn;
+  }
+  if (els.profileLayout) {
+    els.profileLayout.classList.toggle("auth-hidden", signedIn);
+  }
+
   els.connectionStatus.className = `connection-status ${connected ? "connected" : "local"}`;
   els.connectionStatus.innerHTML = connected && signedIn
-    ? `<strong>Вход выполнен</strong><span>Профиль, привычки, галочки, победы и Тень сохраняются в Supabase. Фото подключим следующим шагом.</span>`
+    ? `<strong>Профиль активен</strong><span>Дневник сохраняется в аккаунте и доступен на твоих устройствах.</span>`
     : connected
-    ? `<strong>Supabase настроен</strong><span>Можно зарегистрироваться или войти через настоящий аккаунт.</span>`
-    : `<strong>Локальный режим</strong><span>Профиль и дневник пока живут только в этом браузере.</span>`;
+    ? `<strong>Вход в дневник</strong><span>Войди или зарегистрируйся, чтобы данные были привязаны к аккаунту.</span>`
+    : `<strong>Локальный режим</strong><span>Данные пока сохраняются только в этом браузере.</span>`;
 
   els.authNameField.hidden = state.authMode !== "register";
   els.authSubmit.textContent = connected
@@ -1876,8 +1924,7 @@ async function loadChecksFromSupabase() {
   const { data, error } = await supabaseClient
     .from("habit_checks")
     .select("habit_id, child_id, check_date, done")
-    .eq("user_id", supabaseUser.id)
-    .eq("done", true);
+    .eq("user_id", supabaseUser.id);
 
   if (error) {
     toast(error.message);
@@ -1888,6 +1935,11 @@ async function loadChecksFromSupabase() {
   (data || []).forEach((row) => {
     state.checks[row.check_date] = state.checks[row.check_date] || {};
     const day = state.checks[row.check_date];
+    if (!row.done && !row.child_id) {
+      day[row.habit_id] = { skipped: true };
+      return;
+    }
+    if (!row.done) return;
     if (row.child_id) {
       day[row.habit_id] = day[row.habit_id] || { children: {} };
       day[row.habit_id].children[row.child_id] = true;
@@ -1926,7 +1978,15 @@ async function saveHabitCheckToSupabase(habitId, date) {
 
   const entry = state.checks[date]?.[habitId];
   const rows = [];
-  if (habit.type === "compound") {
+  if (entry?.skipped) {
+    rows.push({
+      user_id: supabaseUser.id,
+      habit_id: habit.id,
+      child_id: null,
+      check_date: date,
+      done: false,
+    });
+  } else if (habit.type === "compound") {
     (habit.children || []).forEach((child) => {
       if (entry?.children?.[child.id]) {
         rows.push({
@@ -2340,13 +2400,79 @@ function toggleHabitCollapse(habitId) {
   saveAndRender();
 }
 
+async function skipHabitForDate(habitId, date = state.activeDate) {
+  const habit = state.habits.find((item) => item.id === habitId);
+  if (!habit) return;
+  if (!confirm(`Убрать "${habit.name}" только из ${formatDate(date)}? Завтра привычка снова появится.`)) return;
+
+  const checks = getDateChecks(date);
+  checks[habitId] = { skipped: true };
+  saveAndRender();
+  await saveHabitCheckToSupabase(habitId, date);
+  toast("Привычка убрана только на этот день.");
+}
+
+async function restoreHabitForDate(habitId, date = state.activeDate) {
+  const checks = getDateChecks(date);
+  delete checks[habitId];
+  saveAndRender();
+  await saveHabitCheckToSupabase(habitId, date);
+  toast("Привычка вернулась в день.");
+}
+
+async function moveHabit(habitId, direction, date = state.activeDate) {
+  const visibleHabits = getVisibleHabitsForDate(date);
+  const visibleIndex = visibleHabits.findIndex((habit) => habit.id === habitId);
+  const targetHabit = visibleHabits[visibleIndex + direction];
+  if (visibleIndex < 0 || !targetHabit) return;
+
+  const index = state.habits.findIndex((habit) => habit.id === habitId);
+  const [habit] = state.habits.splice(index, 1);
+  const targetIndex = state.habits.findIndex((item) => item.id === targetHabit.id);
+  state.habits.splice(direction < 0 ? targetIndex : targetIndex + 1, 0, habit);
+  saveAndRender();
+  await saveHabitOrderToSupabase();
+}
+
+async function saveHabitOrderToSupabase() {
+  if (!supabaseClient || !supabaseUser || !hasSyncedHabits) return true;
+
+  for (const [index, habit] of state.habits.entries()) {
+    const { error } = await supabaseClient
+      .from("habits")
+      .update({ sort_order: index })
+      .eq("id", habit.id)
+      .eq("user_id", supabaseUser.id);
+    if (error) {
+      toast(error.message);
+      return false;
+    }
+  }
+  return true;
+}
+
 function getDateChecks(date) {
   state.checks[date] = state.checks[date] || {};
   return state.checks[date];
 }
 
+function isHabitSkippedOnDate(habitId, date) {
+  return Boolean(state.checks[date]?.[habitId]?.skipped);
+}
+
+function getVisibleHabitsForDate(date) {
+  return state.habits.filter((habit) => !isHabitSkippedOnDate(habit.id, date));
+}
+
+function getSkippedHabitsForDate(date) {
+  return state.habits.filter((habit) => isHabitSkippedOnDate(habit.id, date));
+}
+
 function habitStatus(habit, date) {
   const entry = state.checks[date]?.[habit.id];
+  if (entry?.skipped) {
+    return { status: "skipped", doneChildren: 0 };
+  }
   if (habit.type === "compound") {
     const doneChildren = habit.children.filter((child) => entry?.children?.[child.id]).length;
     return {
@@ -2367,7 +2493,7 @@ function getDayCompletion(date) {
   const coreIds = state.coreHabitIds || CORE_HABIT_IDS;
   const coreHabits = coreIds
     .map((id) => state.habits.find((habit) => habit.id === id))
-    .filter(Boolean);
+    .filter((habit) => habit && !isHabitSkippedOnDate(habit.id, date));
   if (!coreHabits.length) return 0;
 
   let score = 0;
@@ -2383,7 +2509,7 @@ function getCoreDayScore(date) {
   const coreIds = state.coreHabitIds || CORE_HABIT_IDS;
   const coreHabits = coreIds
     .map((id) => state.habits.find((habit) => habit.id === id))
-    .filter(Boolean);
+    .filter((habit) => habit && !isHabitSkippedOnDate(habit.id, date));
 
   const total = coreHabits.length;
   const done = coreHabits.filter((habit) => habitStatus(habit, date).status === "done").length;
